@@ -10,22 +10,43 @@ DISCONNECT_MESSAGE = "!DISCONNECT"
 SERVER = socket.gethostbyname(socket.gethostname())
 ADDR = (SERVER,PORT)
 
-HEADERS = ["CTS", "CTC", "INIT"]
+HEADERS = ["CTS", "DISCONNECT", "CREATE", "JOIN"]
 
 class Client:
-    def __init__(self, name, id):
+    def __init__(self, name, id, spotify_user="",spotify_pass=""):
         self.name = name
         self.id = id
+        self.spotify_user = spotify_user
+        self.spotify_pass = spotify_pass
         self.client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.client.connect(ADDR)
-        self.init_connection()
         self.reciever = threading.Thread(target=self.recv_msg)
         self.reciever.start()
 
 
-    def init_connection(self):
+    """ def init_connection(self):
         identifier = {"NAME":self.name, "ID": self.id}
-        self.send("INIT", "Server", json.dumps(identifier))
+        self.send("INIT", "Server", json.dumps(identifier)) """
+
+    def create_session(self):
+        msg = {
+            "display_name"  : f"{self.name}",
+            "spotify_user"  : f"{self.spotify_user}",
+            "spotify_pass"  : f"{self.spotify_pass}",
+        }
+        msg = json.dumps(msg)
+        self.send("CREATE", "Server", msg)
+
+    def join_session(self, session_id):
+        msg = {
+            "session_id"    : session_id,
+            "display_name"  : f"{self.name}"
+        }
+        msg = json.dumps(msg)
+        self.send("JOIN", "Server", msg)
+
+    def create_disconnect_message(self):
+        return self.create_message(DISCONNECT_MESSAGE, "Server", DISCONNECT_MESSAGE)
 
     def recv_msg(self):
         while True:
@@ -44,8 +65,7 @@ class Client:
         else:
             return None
 
-    def create_disconnect_message(self):
-        return self.create_message("CTS", "Server", DISCONNECT_MESSAGE)
+    
 
     def send(self,header,dest,msg):
         if msg == DISCONNECT_MESSAGE:
@@ -66,9 +86,18 @@ class Client:
             self.client.send(message)
 
 if __name__ == "__main__":
-    x = input("enter your name")
-    client = Client(x, str(uuid.uuid4()))
-    client.send("CTS", "Server", "Hello World")
+    name = input("enter your name")
+    join = input("Create or join")
+    
+
+    if(join == "c"):
+        client = Client(name, str(uuid.uuid4()))
+        client.create_session()
+    elif(join == "j"):
+        session_id = input("what session do you want to join")
+        client = Client(name, str(uuid.uuid4()))
+        client.join_session(session_id)
+    
     while True:
         header = input("What kind of header")
         dest = input("who do you want to send to")

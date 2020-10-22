@@ -1,6 +1,7 @@
 import socket
 import threading
 import json
+import random, string
 
 PREFIX = 64
 PORT = 5050
@@ -15,35 +16,55 @@ class Server:
         self.server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.server.bind(ADDR)
         self.connections = {}
+        self.sessions = {}
+
+
 
     def handle_client(self,conn,addr):
         print(f"[NEW CONNECTION] {addr} connected")
 
         connected = True
         while connected:
-            msg_length = conn.recv(PREFIX).decode(FORMAT)
+            try:
+                msg_length = conn.recv(PREFIX).decode(FORMAT)
+            except Exception as ex:
+                print(str(ex))
+
             if msg_length:
                 msg_length = int(msg_length)
                 raw_msg = conn.recv(msg_length).decode(FORMAT)
                 message = json.loads(raw_msg)
 
-                if message["MESSAGE"] == DISCONNECT_MESSAGE:
+                if message["HEADER"] == DISCONNECT_MESSAGE:
                     connected = False
-
-                elif message["HEADER"] == "CTC":
-                    dest = message["DEST"]
-                    self.send("CTC", dest, message["ID"], message["MESSAGE"])
-
-                elif message["HEADER"] == "INIT":
-                    identifier = json.loads(message["MESSAGE"])
-                    self.connections[identifier["ID"]] = {"NAME" : identifier["NAME"], "CONN": conn}
-                    print(self.connections.keys())
-
+                
+                elif message["HEADER"] == "CREATE":
+                    session_id = "".join(random.choices(string.ascii_letters + string.digits, k = 4))
+                    indentifer = json.loads(message["MESSAGE"])
+                    self.sessions[session_id] = {
+                        "HOST" : {
+                            "ID"            : message["ID"],
+                            "NAME"          : indentifer["display_name"], 
+                            "spotify_user"  : indentifer["spotify_user"],
+                            "spotify_pass"  : indentifer["spotify_pass"]
+                        },
+                        "USERS" : {}
+                    }
+                    print(self.sessions) 
+                
+                elif message["HEADER"] == "JOIN":
+                    msg = json.loads(message["MESSAGE"])
+                    session_id = msg["session_id"]
+                    if session_id in self.sessions.keys():
+                        self.sessions[session_id]["USERS"][message["ID"]] = {
+                            "display_name"  : msg["display_name"],
+                            "permissions"   : {}   
+                        } 
+                    print(self.sessions)
                 else:
-                    print(f"[{addr}, {self.connections[message['ID']]['NAME']}] {message['MESSAGE']}")
+                    print("None")
 
-        del self.connections[message["ID"]]
-        print(self.connections.keys())
+        print(self.sessions)
         print(f"[CLOSING CONNECTION] {addr} closed")
         conn.close()
 
