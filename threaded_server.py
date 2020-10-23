@@ -28,15 +28,27 @@ class Server:
             try:
                 msg_length = conn.recv(PREFIX).decode(FORMAT)
             except Exception as ex:
-                print(str(ex))
+                print(f"[{addr}] DISCONNECTED")
+                self.handle_unexpected_disconnect(client_id,conn)
+                self.print_connections()
+                self.print_sessions()
+                break
 
             if msg_length:
                 msg_length = int(msg_length)
-                raw_msg = conn.recv(msg_length).decode(FORMAT)
+                try:
+                    raw_msg = conn.recv(msg_length).decode(FORMAT)
+                except:
+                    print(f"[{addr}] DISCONNECTED")
+                    self.handle_unexpected_disconnect(client_id,conn)
+                    self.print_connections()
+                    self.print_sessions()
+                    break
                 message = json.loads(raw_msg)
 
                 if message["HEADER"] == DISCONNECT_MESSAGE:
                     connected = False
+                    self.handle_disconnect(message,conn)
                 
                 elif message["HEADER"] == "CREATE":
                     session_id = "".join(random.choices(string.ascii_letters + string.digits, k = 4))
@@ -50,7 +62,16 @@ class Server:
                         },
                         "USERS" : {}
                     }
-                    print(self.sessions) 
+                    self.connections[message["ID"]] = {
+                            "display_name"  : indentifer["display_name"],
+                            "session_id"    : session_id,
+                            "host"          : True,
+                            "CONN"          : conn,
+                            "ADDR"          : addr
+                    }
+                    client_id = message["ID"] 
+                    self.print_connections()
+                    self.print_sessions() 
                 
                 elif message["HEADER"] == "JOIN":
                     msg = json.loads(message["MESSAGE"])
@@ -59,14 +80,80 @@ class Server:
                         self.sessions[session_id]["USERS"][message["ID"]] = {
                             "display_name"  : msg["display_name"],
                             "permissions"   : {}   
+                        }
+                        self.connections[message["ID"]] = {
+                            "display_name"  : msg["display_name"],
+                            "session_id"    : session_id,
+                            "host"          : False,
+                            "CONN"          : conn,
+                            "ADDR"          : addr
                         } 
-                    print(self.sessions)
+                    client_id = message["ID"]
+                    self.print_connections()
+                    self.print_sessions()
                 else:
-                    print("None")
+                    print(f"[{addr}] {message['MESSAGE']}")
 
-        print(self.sessions)
-        print(f"[CLOSING CONNECTION] {addr} closed")
-        conn.close()
+        self.print_connections()
+        self.print_sessions()
+        print("Thread Closing")
+
+    def print_sessions(self):
+        print("[Printing Sessions]")
+        for key in self.sessions.keys():
+            print(f"{key}:\n\t{self.sessions[key]}")
+
+    def print_connections(self):
+        print("[Printing Connections]")
+        for key in self.connections.keys():
+            print(f"{key}:\n\t{self.connections[key]}")
+
+
+    def handle_disconnect(self,message,conn):
+        if self.connections[message["ID"]]["host"] == True: #if user is host, delete all connections 
+            print("HOST DISCONNECTING")
+            session_location = self.connections[message["ID"]]["session_id"]
+            for key in self.sessions[session_location]["USERS"].keys():
+                self.connections[key]["CONN"].send("closed".encode(FORMAT))
+                self.connections[key]["CONN"].close() #close each connection
+                del self.connections[key] #delete the connection from the connections dictionary
+            del self.sessions[session_location] # delete the session
+            del self.connections[message["ID"]]
+            conn.send("closed".encode(FORMAT))
+            conn.close()
+        else:
+            session_location = self.connections[message["ID"]]["session_id"]
+            del self.sessions[session_location]["USERS"][message["ID"]]
+            del self.connections[message["ID"]]
+            conn.send("closed".encode(FORMAT))
+            conn.close()
+
+        self.print_connections()
+        self.print_sessions()
+        
+
+    def handle_unexpected_disconnect(self,client_id, conn):
+        try:
+            if self.connections[client_id]["host"] == True: #if user is host, delete all connections 
+                session_location = self.connections[client_id]["session_id"]
+                for key in self.sessions[session_location]["USERS"].keys():
+                    self.connections[key]["CONN"].send("closed".encode(FORMAT))#send closed message 
+                    self.connections[key]["CONN"].close() #close each connection
+                    del self.connections[key] #delete the connection from the connections dictionary
+                del self.sessions[session_location] # delete the session
+                del self.connections[client_id]
+                #conn.send("closed".encode(FORMAT))
+                conn.close()
+            else:
+                session_location = self.connections[client_id]["session_id"]
+                del self.sessions[session_location]["USERS"][message["ID"]]
+                del self.connections[client_id]
+                conn.send("closed".encode(FORMAT))
+                conn.close()
+        except:
+            self.print_connections()
+            self.print_sessions()
+        
 
     def create_message(self, header, dest, sender, msg):
         if header in HEADERS:
@@ -99,15 +186,26 @@ class Server:
             conn = self.connections[sender]["CONN"]
             conn.send("User DNE").encode(FORMAT)
 
-
+    def show_connections(self):
+        prev_threads = get_num_connections()
+        print(f"[Initial Num Threads] {get_num_connections()}")
+        while True:
+            if get_num_connections() != prev_threads:
+                print(f"[CHANGE IN THREADS] Num threads: {get_num_connections()}")
+                prev_threads = get_num_connections()
 
     def start(self):
         self.server.listen()
         print(f"[STARTING] server is starting\nListening on {SERVER}:{PORT}")
+        connections = threading.Thread(target = self.show_connections)
+        connections.start()
         while True:
             conn, addr = self.server.accept()
             thread = threading.Thread(target = self.handle_client, args = (conn,addr))
             thread.start()
+
+def get_num_connections():
+    return threading.activeCount()
 
 if __name__ == "__main__":
     server = Server()

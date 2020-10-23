@@ -7,10 +7,11 @@ PREFIX = 64
 PORT = 5050
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-SERVER = socket.gethostbyname(socket.gethostname())
+SERVER = "68.84.71.235"
+#SERVER = socket.gethostbyname(socket.gethostname())
 ADDR = (SERVER,PORT)
 
-HEADERS = ["CTS", "DISCONNECT", "CREATE", "JOIN"]
+HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN"]
 
 class Client:
     def __init__(self, name, id, spotify_user="",spotify_pass=""):
@@ -50,8 +51,19 @@ class Client:
 
     def recv_msg(self):
         while True:
-            msg = self.client.recv(2048)
-            print(msg)
+            try:
+                msg = self.client.recv(2048).decode(FORMAT)
+                if msg == "closed":
+                    self.close_client()
+                    break
+            except:
+                print("Client closed")
+                return
+            
+    
+    def close_client(self):
+        self.client.close()
+        
 
     def create_message(self, header, dest, msg):
         if header in HEADERS:
@@ -103,5 +115,9 @@ if __name__ == "__main__":
         dest = input("who do you want to send to")
         msg = input("What message do you want to send")
         client.send(header, dest, msg)
-        if msg == DISCONNECT_MESSAGE:
+        if header == DISCONNECT_MESSAGE:
             break
+    
+    print("closing client")
+    del client
+    exit()
