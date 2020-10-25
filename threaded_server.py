@@ -11,7 +11,7 @@ SERVER = ''
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["CTS", "CTC", "INIT","RECV","BROADCAST", "BROADCAST_S","FAILURE"]
+HEADERS = ["CTS", "CTC", "INIT","RECV","BROADCAST", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE]
 
 class Server:
     def __init__(self):
@@ -80,6 +80,7 @@ class Server:
                     self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
 
 
+
         print("Thread Closing")
 
     def handle_disconnect(self,message,conn):
@@ -107,8 +108,7 @@ class Server:
                     self.delete_connection_entry(key) #delete the connection from the connections dictionary
                 self.delete_session(session_location) # delete the session
                 self.delete_connection_entry(client_id)
-                #conn.send("closed".encode(FORMAT))
-                conn.close()
+                self.disconnect(conn)
             else:
                 session_location = self.connections[client_id]["session_id"]
                 self.delete_session_entry(session_location,client_id)
@@ -143,6 +143,7 @@ class Server:
 
     def disconnect(self,conn):
         discon_msg = self.create_disconnect_message()
+        print(discon_msg)
         discon_msg = json.dumps(discon_msg)
         discon_msg = discon_msg.encode(FORMAT)
         discon_len = len(discon_msg)
@@ -150,6 +151,7 @@ class Server:
         discon_len += b' ' * (PREFIX-len(discon_msg))
         conn.send(discon_len)
         conn.send(discon_msg)
+        conn.close()
 
     def print_sessions(self):
         print("[Printing Sessions]")
@@ -193,7 +195,8 @@ class Server:
             "session_id"    : session_id,
             "host"          : host,
             "CONN"          : conn,
-            "ADDR"          : addr
+            "ADDR"          : addr,
+            "connected"     : True
         }
 
     def add_user_to_session(self,session_id,client_id,display_name):

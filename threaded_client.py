@@ -59,7 +59,9 @@ class Client:
                 try:
                     raw_msg = self.client.recv(msg_len).decode(FORMAT)
                     message = json.loads(raw_msg)
-                    if message["MESSAGE"] == DISCONNECT_MESSAGE:
+                    if message["HEADER"] == DISCONNECT_MESSAGE:
+                        print(message["MESSAGE"])
+                        ctypes.windll.user32.MessageBoxW(0, message["MESSAGE"], str(self.name), 1)
                         self.close_client()
                         break
                     else:
