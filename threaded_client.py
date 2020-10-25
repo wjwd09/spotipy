@@ -2,16 +2,17 @@ import socket
 import json
 import uuid
 import threading
+import ctypes
 
 PREFIX = 64
-PORT = 5050
+PORT = 5060
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-SERVER = "68.84.71.235"
-#SERVER = socket.gethostbyname(socket.gethostname())
+#SERVER = "10.0.0.18"
+SERVER = socket.gethostbyname(socket.gethostname())
 ADDR = (SERVER,PORT)
 
-HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN"]
+HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST"]
 
 class Client:
     def __init__(self, name, id, spotify_user="",spotify_pass=""):
@@ -23,6 +24,7 @@ class Client:
         self.client.connect(ADDR)
         self.reciever = threading.Thread(target=self.recv_msg)
         self.reciever.start()
+        self.connected = True
 
 
     """ def init_connection(self):
@@ -52,17 +54,31 @@ class Client:
     def recv_msg(self):
         while True:
             try:
-                msg = self.client.recv(2048).decode(FORMAT)
+                msg = self.client.recv(PREFIX).decode(FORMAT)
                 if msg == "closed":
                     self.close_client()
                     break
-            except:
+                else:
+                    msg_len = int(msg)
+                    try:
+                        raw_msg = self.client.recv(msg_len).decode(FORMAT)
+                        message = json.loads(raw_msg)
+                        print(message["MESSAGE"])
+                        ctypes.windll.user32.MessageBoxW(0, message["MESSAGE"], str(self.name), 1)
+                    except:
+                        print(f"[SERVER NOT RESPONDING] closing client")
+                        self.close_client()
+                        break
+
+            except Exception as ex:
+                print(str(ex))
                 print("Client closed")
                 return
             
     
     def close_client(self):
         self.client.close()
+        self.connected = False
         
 
     def create_message(self, header, dest, msg):
@@ -114,7 +130,8 @@ if __name__ == "__main__":
         header = input("What kind of header")
         dest = input("who do you want to send to")
         msg = input("What message do you want to send")
-        client.send(header, dest, msg)
+        if client.connected:
+            client.send(header, dest, msg)
         if header == DISCONNECT_MESSAGE:
             break
     
