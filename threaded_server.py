@@ -11,7 +11,7 @@ SERVER = ''
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["CTS", "CTC", "INIT","RECV","BROADCAST", "BROADCAST_S"]
+HEADERS = ["CTS", "CTC", "INIT","RECV","BROADCAST", "BROADCAST_S","FAILURE"]
 
 class Server:
     def __init__(self):
@@ -24,7 +24,7 @@ class Server:
 
     def handle_client(self,conn,addr):
         print(f"[NEW CONNECTION] {addr} connected")
-
+        client_id = ""
         connected = True
         while connected:
             try:
@@ -32,7 +32,7 @@ class Server:
             except Exception as ex:
                 print(f"[{addr}] DISCONNECTED")
                 self.handle_unexpected_disconnect(client_id,conn)
-                break
+                return
 
             if msg_length:
                 msg_length = int(msg_length)
@@ -41,50 +41,35 @@ class Server:
                 except:
                     print(f"[{addr}] DISCONNECTED")
                     self.handle_unexpected_disconnect(client_id,conn)
-                    break
+                    return
                 message = json.loads(raw_msg)
 
                 if message["HEADER"] == DISCONNECT_MESSAGE:
                     connected = False
                     self.handle_disconnect(message,conn)
-                
+
                 elif message["HEADER"] == "CREATE":
                     session_id = "".join(random.choices(string.ascii_letters + string.digits, k = 4))
                     indentifer = json.loads(message["MESSAGE"])
-                    self.sessions[session_id] = {
-                        "HOST" : {
-                            "ID"            : message["ID"],
-                            "NAME"          : indentifer["display_name"], 
-                            "spotify_user"  : indentifer["spotify_user"],
-                            "spotify_pass"  : indentifer["spotify_pass"]
-                        },
-                        "USERS" : {}
-                    }
-                    self.connections[message["ID"]] = {
-                            "display_name"  : indentifer["display_name"],
-                            "session_id"    : session_id,
-                            "host"          : True,
-                            "CONN"          : conn,
-                            "ADDR"          : addr
-                    }
-                    client_id = message["ID"] 
-                
+                    self.create_session(session_id, message["ID"], indentifer["display_name"], indentifer["spotify_user"], indentifer["spotify_pass"])
+                    self.add_connection_entry(message["ID"], indentifer["display_name"], session_id, True, conn, addr)
+                    client_id = message["ID"]
+
                 elif message["HEADER"] == "JOIN":
                     msg = json.loads(message["MESSAGE"])
                     session_id = msg["session_id"]
                     if session_id in self.sessions.keys():
-                        self.sessions[session_id]["USERS"][message["ID"]] = {
-                            "display_name"  : msg["display_name"],
-                            "permissions"   : {}   
-                        }
-                        self.connections[message["ID"]] = {
-                            "display_name"  : msg["display_name"],
-                            "session_id"    : session_id,
-                            "host"          : False,
-                            "CONN"          : conn,
-                            "ADDR"          : addr
-                        } 
-                    client_id = message["ID"]
+                        self.add_user_to_session(session_id,message["ID"],msg["display_name"])
+                        self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
+                        client_id = message["ID"]
+                        self.broadcast_to_session(session_id, "BROADCAST_S", f"[NEW USER HAS JOINED YOUR SESSION] Welcome! {msg['display_name']}", exclude=[client_id])
+                    else:
+                        self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
+                        self.send("FAILURE", message["ID"], "Session does not exist")
+                        self.send(DISCONNECT_MESSAGE,message["ID"],DISCONNECT_MESSAGE)
+                        self.delete_connection_entry(message["ID"])
+                        break
+
                 elif message["HEADER"] == "BROADCAST_S":
                     session_id = self.connections[message["ID"]]["session_id"]
                     self.broadcast_to_session(session_id,"BROADCAST_S", message["MESSAGE"])
@@ -97,71 +82,46 @@ class Server:
 
         print("Thread Closing")
 
-    def print_sessions(self):
-        print("[Printing Sessions]")
-        for key in self.sessions.keys():
-            print(f"{key}:\n\t{self.sessions[key]}")
-
-    def print_connections(self):
-        print("[Printing Connections]")
-        for key in self.connections.keys():
-            print(f"{key}:\n\t{self.connections[key]}")
-
-
     def handle_disconnect(self,message,conn):
-        if self.connections[message["ID"]]["host"] == True: #if user is host, delete all connections 
+        if self.connections[message["ID"]]["host"] == True: #if user is host, delete all connections
             print("HOST DISCONNECTING")
             session_location = self.connections[message["ID"]]["session_id"]
             for key in self.sessions[session_location]["USERS"].keys():
-                self.connections[key]["CONN"].send("closed".encode(FORMAT))
-                self.connections[key]["CONN"].close() #close each connection
-                del self.connections[key] #delete the connection from the connections dictionary
-            del self.sessions[session_location] # delete the session
-            del self.connections[message["ID"]]
-            conn.send("closed".encode(FORMAT))
-            conn.close()
+                self.disconnect(self.connections[key]["CONN"]) #close each connection
+                self.delete_connection_entry(key) #delete the connection from the connections dictionary
+            self.delete_session(session_location) # delete the session
+            self.delete_connection_entry(message["ID"])
+            self.disconnect(conn)
         else:
             session_location = self.connections[message["ID"]]["session_id"]
-            del self.sessions[session_location]["USERS"][message["ID"]]
-            del self.connections[message["ID"]]
-            conn.send("closed".encode(FORMAT))
-            conn.close()
-        
+            self.delete_session_entry(session_location,message["ID"])
+            self.delete_connection_entry(message["ID"])
+            self.disconnect(conn)
+
     def handle_unexpected_disconnect(self,client_id, conn):
         try:
-            if self.connections[client_id]["host"] == True: #if user is host, delete all connections 
+            if self.connections[client_id]["host"] == True: #if user is host, delete all connections
                 session_location = self.connections[client_id]["session_id"]
                 for key in self.sessions[session_location]["USERS"].keys():
-                    self.connections[key]["CONN"].send("closed".encode(FORMAT))#send closed message 
-                    self.connections[key]["CONN"].close() #close each connection
-                    del self.connections[key] #delete the connection from the connections dictionary
-                del self.sessions[session_location] # delete the session
-                del self.connections[client_id]
+                    self.disconnect(self.connections[key]["CONN"]) #close each connection
+                    self.delete_connection_entry(key) #delete the connection from the connections dictionary
+                self.delete_session(session_location) # delete the session
+                self.delete_connection_entry(client_id)
                 #conn.send("closed".encode(FORMAT))
                 conn.close()
             else:
                 session_location = self.connections[client_id]["session_id"]
-                del self.sessions[session_location]["USERS"][client_id]
-                del self.connections[client_id]
-                conn.send("closed".encode(FORMAT))
-                conn.close()
+                self.delete_session_entry(session_location,client_id)
+                self.delete_connection_entry(client_id)
+                self.disconnect(conn)
         except:
             pass
-        
 
-    def create_message(self, header, dest, msg):
-        if header in HEADERS:
-            message = {
-                "HEADER"    : f"{header}",
-                "DEST"      : f"{dest}",
-                "MESSAGE"   : f"{msg}"
-            }
-            return message
-        else:
-            return None
+
+
 
     def send(self,header,dest,msg):
-        
+
         message = self.create_message(header,dest,msg)
 
         if message == None:
@@ -176,17 +136,93 @@ class Server:
             conn = self.connections[dest]["CONN"]
             conn.send(send_length)
             conn.send(message)
-    
-    def broadcast_to_all(self,header,msg):
-        for key in self.connections.keys():
-            self.send(header,key,msg)
 
-    def broadcast_to_session(self,session_id,header,msg):
+    #-----------------------------HELPER FUNCTIONS-----------------------------#
+    def create_disconnect_message(self):
+        return self.create_message(DISCONNECT_MESSAGE, "Server", DISCONNECT_MESSAGE)
+
+    def disconnect(self,conn):
+        discon_msg = self.create_disconnect_message()
+        discon_msg = json.dumps(discon_msg)
+        discon_msg = discon_msg.encode(FORMAT)
+        discon_len = len(discon_msg)
+        discon_len = str(discon_len).encode(FORMAT)
+        discon_len += b' ' * (PREFIX-len(discon_msg))
+        conn.send(discon_len)
+        conn.send(discon_msg)
+
+    def print_sessions(self):
+        print("[Printing Sessions]")
+        for key in self.sessions.keys():
+            print(f"{key}:\n\t{self.sessions[key]}")
+
+    def print_connections(self):
+        print("[Printing Connections]")
+        for key in self.connections.keys():
+            print(f"{key}:\n\t{self.connections[key]}")
+
+    def get_session_from_user(self, client_id):
+        return self.connections[client_id]["session_id"]
+
+    def create_message(self, header, dest, msg):
+        if header in HEADERS:
+            message = {
+                "HEADER"    : f"{header}",
+                "DEST"      : f"{dest}",
+                "MESSAGE"   : f"{msg}"
+            }
+            return message
+        else:
+            return None
+
+    def broadcast_to_all(self,header,msg, exclude = []):
+        for key in self.connections.keys():
+            if key not in exclude:
+                self.send(header,key,msg)
+
+    def broadcast_to_session(self,session_id,header,msg, exclude = []):
         host = self.sessions[session_id]["HOST"]["ID"]
         self.send(header,host,msg)
         for key in self.sessions[session_id]["USERS"].keys():
-            self.send(header,key,msg)
-        
+            if key not in exclude:
+                self.send(header,key,msg)
+
+    def add_connection_entry(self,client_id, display_name,session_id,host,conn,addr):
+        self.connections[client_id] = {
+            "display_name"  : display_name,
+            "session_id"    : session_id,
+            "host"          : host,
+            "CONN"          : conn,
+            "ADDR"          : addr
+        }
+
+    def add_user_to_session(self,session_id,client_id,display_name):
+        self.sessions[session_id]["USERS"][client_id] = {
+            "display_name"  :display_name,
+            "permissions"   : {}
+        }
+
+    def create_session(self,session_id,host_id,host_name,host_user,host_pass):
+        self.sessions[session_id] = {
+            "HOST" : {
+                "ID"            : host_id,
+                "NAME"          : host_name,
+                "spotify_user"  : host_user,
+                "spotify_pass"  : host_pass
+            },
+            "USERS" : {}
+        }
+
+    def delete_connection_entry(self,client_id):
+        del self.connections[client_id]
+
+    def delete_session_entry(self,session_id,client_id):
+        del self.sessions[session_id]["USERS"][client_id]
+
+    def delete_session(self,session_id):
+        del self.sessions[session_id]
+
+    #-----------------------------END HELPER FUNCTIONS-----------------------------#
 
     def show_connections(self):
         prev_threads = get_num_connections()
@@ -198,6 +234,8 @@ class Server:
                 self.print_connections()
                 self.print_sessions()
                 prev_threads = get_num_connections()
+                for thread in threading.enumerate():
+                    print(thread.name)
 
     def start(self):
         self.server.listen()

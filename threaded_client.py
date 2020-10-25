@@ -55,31 +55,31 @@ class Client:
         while True:
             try:
                 msg = self.client.recv(PREFIX).decode(FORMAT)
-                if msg == "closed":
-                    self.close_client()
-                    break
-                else:
-                    msg_len = int(msg)
-                    try:
-                        raw_msg = self.client.recv(msg_len).decode(FORMAT)
-                        message = json.loads(raw_msg)
-                        print(message["MESSAGE"])
-                        ctypes.windll.user32.MessageBoxW(0, message["MESSAGE"], str(self.name), 1)
-                    except:
-                        print(f"[SERVER NOT RESPONDING] closing client")
+                msg_len = int(msg)
+                try:
+                    raw_msg = self.client.recv(msg_len).decode(FORMAT)
+                    message = json.loads(raw_msg)
+                    if message["MESSAGE"] == DISCONNECT_MESSAGE:
                         self.close_client()
                         break
+                    else:
+                        print(message["MESSAGE"])
+                        ctypes.windll.user32.MessageBoxW(0, message["MESSAGE"], str(self.name), 1)
+                except:
+                    print(f"[SERVER NOT RESPONDING] closing client")
+                    self.close_client()
+                    break
 
             except Exception as ex:
                 print(str(ex))
                 print("Client closed")
                 return
-            
-    
+
+
     def close_client(self):
         self.client.close()
         self.connected = False
-        
+
 
     def create_message(self, header, dest, msg):
         if header in HEADERS:
@@ -93,7 +93,7 @@ class Client:
         else:
             return None
 
-    
+
 
     def send(self,header,dest,msg):
         if msg == DISCONNECT_MESSAGE:
@@ -116,7 +116,7 @@ class Client:
 if __name__ == "__main__":
     name = input("enter your name")
     join = input("Create or join")
-    
+
 
     if(join == "c"):
         client = Client(name, str(uuid.uuid4()))
@@ -125,7 +125,7 @@ if __name__ == "__main__":
         session_id = input("what session do you want to join")
         client = Client(name, str(uuid.uuid4()))
         client.join_session(session_id)
-    
+
     while True:
         header = input("What kind of header")
         dest = input("who do you want to send to")
@@ -134,7 +134,7 @@ if __name__ == "__main__":
             client.send(header, dest, msg)
         if header == DISCONNECT_MESSAGE:
             break
-    
+
     print("closing client")
     del client
     exit()
