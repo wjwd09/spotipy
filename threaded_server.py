@@ -85,8 +85,6 @@ class Server:
                     print(f"[{addr}] {message['MESSAGE']}")
                     self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
 
-
-
         print("Thread Closing")
 
     def handle_disconnect(self,message,conn):
