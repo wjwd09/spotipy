@@ -11,7 +11,7 @@ SERVER = ''
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["CTS", "CTC", "INIT","RECV","BROADCAST", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE]
+HEADERS = ["CTS", "CTC", "INIT","RECV","BROADCAST", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED"]
 
 class Server:
     def __init__(self):
@@ -98,18 +98,20 @@ class Server:
         """
         if self.connections[message["ID"]]["host"] == True: #if user is host, delete all connections
             print("HOST DISCONNECTING")
+            host = message["ID"]
             session_location = self.connections[message["ID"]]["session_id"]
             for key in self.sessions[session_location]["USERS"].keys():
-                self.disconnect(self.connections[key]["CONN"]) #close each connection
+                self.disconnect(self.connections[key]["CONN"],message["ID"],f"[HOST <{host}>:<{self.connections[host]['display_name']}>] Unexpectedly Disconnected") #close each connection
                 self.delete_connection_entry(key) #delete the connection from the connections dictionary
             self.delete_session(session_location) # delete the session
             self.delete_connection_entry(message["ID"])
-            self.disconnect(conn)
+            self.disconnect(conn,message["ID"], "You Disconnected")
         else:
             session_location = self.connections[message["ID"]]["session_id"]
             self.delete_session_entry(session_location,message["ID"])
+            self.broadcast_to_session(session_location, "USER_DISCONNECT",f"[USER <{message['ID']}>:<{self.connections[message['ID']]['display_name']}>] Disconnected", exclude=[message["ID"]])
             self.delete_connection_entry(message["ID"])
-            self.disconnect(conn)
+            self.disconnect(conn,message["ID"],"You Disconnected")
 
     def handle_unexpected_disconnect(self,client_id, conn):
         """
@@ -122,16 +124,17 @@ class Server:
             if self.connections[client_id]["host"] == True: #if user is host, delete all connections
                 session_location = self.connections[client_id]["session_id"]
                 for key in self.sessions[session_location]["USERS"].keys():
-                    self.disconnect(self.connections[key]["CONN"]) #close each connection
+                    self.disconnect(self.connections[key]["CONN"],client_id,f"[HOST <{client_id}>:<{self.connections[client_id]['display_name']}>] Unexpectedly Disconnected") #close each connection
                     self.delete_connection_entry(key) #delete the connection from the connections dictionary
                 self.delete_session(session_location) # delete the session
                 self.delete_connection_entry(client_id) # delete the original client entry from connections
-                self.disconnect(conn)
+                self.disconnect(conn,client_id,"You Disconnected")
             else:
                 session_location = self.connections[client_id]["session_id"]
                 self.delete_session_entry(session_location,client_id)
+                self.broadcast_to_session(session_location, "USER_DISCONNECT_UNEXPECTED",f"[USER <{client_id}>:<{self.connections[client_id]['display_name']}>] Unexpectedly Disconnected", exclude=[client_id])
                 self.delete_connection_entry(client_id)
-                self.disconnect(conn)
+                self.disconnect(conn,client_id,"You Disconnected")
         except:
             pass
 
@@ -161,16 +164,16 @@ class Server:
             conn.send(message)
 
     #-----------------------------HELPER FUNCTIONS-----------------------------#
-    def create_disconnect_message(self):
-        return self.create_message(DISCONNECT_MESSAGE, "Server", DISCONNECT_MESSAGE)
+    def create_disconnect_message(self,dest, reason):
+        return self.create_message(DISCONNECT_MESSAGE, dest, reason)
 
-    def disconnect(self,conn):
+    def disconnect(self,conn,dest,reason):
         """
         Sends a disconnect message to a specified conn object then closes the connection
         Parameters      : conn      (socket)    ->  The connection to be disconnected
         Returns         : None
         """
-        discon_msg = self.create_disconnect_message()
+        discon_msg = self.create_disconnect_message(dest,reason)
         print(discon_msg)
         discon_msg = json.dumps(discon_msg)
         discon_msg = discon_msg.encode(FORMAT)
