@@ -1,13 +1,13 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
-import soundcloud
+#import soundcloud
 import os
 import json
 import time
 
 #track = "spotify:track:7GhIk7Il098yCjg4BQjzvb"
-SCOPE = "user-read-playback-state user-modify-playback-state"
-sp = spotipy.Spotify(auth_manager=spotipy.SpotifyOAuth(scope=SCOPE))
+accToken = input("Enter access token:")
+sp = spotipy.Spotify(auth=accToken)
 #current_song = sp.currently_playing()['item']['name']
 #current_artist = sp.currently_playing()['item']['album']['artists'][0]['name']
 current_song = ""
