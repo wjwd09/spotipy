@@ -11,7 +11,7 @@ SERVER = ''
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["CTS", "CTC", "INIT","RECV","BROADCAST", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS"]
+HEADERS = ["CTS","STC", "CTC", "INIT","RECV","BROADCAST", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS"]
 
 class Server:
     def __init__(self):
@@ -60,6 +60,7 @@ class Server:
                     self.create_session(session_id, message["ID"], indentifer["display_name"], indentifer["spotify_user"], indentifer["spotify_pass"])
                     self.add_connection_entry(message["ID"], indentifer["display_name"], session_id, True, conn, addr)
                     client_id = message["ID"]
+                    self.send("STC", client_id, f"Your session id is: <{session_id}>")
 
                 elif message["HEADER"] == "JOIN":
                     msg = json.loads(message["MESSAGE"])
