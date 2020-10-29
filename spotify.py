@@ -33,6 +33,21 @@ def add_to_queue(song):
 
 def previous_track():
     sp.previous_track()
+    time.sleep(1)
+    print("Now playing: " + sp.currently_playing()['item']['name'] + " by " + sp.currently_playing()['item']['album']['artists'][0]['name'])
 
 def next_track():
     sp.next_track()
+    time.sleep(1)
+    print("Now playing: " + sp.currently_playing()['item']['name'] + " by " + sp.currently_playing()['item']['album']['artists'][0]['name'])
+
+while True:
+    cmd = input("Enter 1 for pause/play, 2 for skip, 3 for previous track, 4 to quit\n")
+    if cmd == "1":
+        toggle_playback()
+    elif cmd == "2":
+        next_track()
+    elif cmd == "3":
+        previous_track()
+    elif cmd == "4":
+        break
