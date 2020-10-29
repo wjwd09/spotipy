@@ -3,16 +3,20 @@ import json
 import uuid
 import threading
 import ctypes
+from time import sleep
 
 PREFIX = 64
 PORT = 5060
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-#SERVER = "10.0.0.18"
-SERVER = socket.gethostbyname(socket.gethostname())
-ADDR = (SERVER,PORT)
+LOCAL_SERVER = "10.0.0.17"
+#LOCAL_SERVER = socket.gethostbyname(socket.gethostname())
+PUBLIC_SERVER = "68.84.71.235"
+LOCAL_ADDR = (LOCAL_SERVER,PORT)
 
-HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST"]
+PUBLIC_ADDR = (PUBLIC_SERVER,PORT)
+
+HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS"]
 
 class Client:
     def __init__(self, name, id, spotify_user="",spotify_pass=""):
@@ -21,15 +25,23 @@ class Client:
         self.spotify_user = spotify_user
         self.spotify_pass = spotify_pass
         self.client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.client.connect(ADDR)
-        self.reciever = threading.Thread(target=self.recv_msg)
-        self.reciever.start()
+        self.local = False
+        try:
+            self.client.connect(PUBLIC_ADDR)
+        except:
+            self.local = True
+
+        if self.local:
+            try:
+                self.client.connect(LOCAL_ADDR)
+            except Exception as ex:
+                print(str(ex))
+                return
+
+        self.receiver = threading.Thread(target=self.recv_msg)
+        self.receiver.start()
         self.connected = True
-
-
-    """ def init_connection(self):
-        identifier = {"NAME":self.name, "ID": self.id}
-        self.send("INIT", "Server", json.dumps(identifier)) """
+        self.recieving = False
 
     def create_session(self):
         msg = {
@@ -64,6 +76,12 @@ class Client:
                         ctypes.windll.user32.MessageBoxW(0, message["MESSAGE"], str(self.name), 1)
                         self.close_client()
                         break
+                    elif message["HEADER"] == "USER_JOINED":
+                        # self.recieving = True
+                        # user_permissions = self.set_permissions(message["MESSAGE"])
+                        # self.send("SET_PERMISSIONS", "Server", user_permissions)
+                        # self.recieving = False
+                        pass
                     else:
                         print(message["MESSAGE"])
                         ctypes.windll.user32.MessageBoxW(0, message["MESSAGE"], str(self.name), 1)
@@ -77,6 +95,23 @@ class Client:
                 print("Client closed")
                 return
 
+    def set_permissions(self, user_id):
+        permissions = {}
+        permissions["add_to_queue"] = input("Should this user be allowed to add to the queue?[T/F] ")
+        permissions["remove_from_queue"] = input("Should this user be allowed to remove from the queue?[T/F] ")
+        permissions["pause"] = input("Should this user be allowed to pause playback?[T/F] ")
+        permissions["play"] = input("Should this user be allowed to play?[T/F] ")
+        permissions["skip"] = input("Should this user be allowed to skip?[T/F] ")
+        for key in permissions.keys():
+            print(permissions[key])
+            if permissions[key] == 'T' or permissions[key] == 't':
+                permissions[key] = True
+            else:
+                permissions[key] = False
+            print(permissions[key])
+        permissions = json.dumps(permissions)
+        return_permissions = {"client_id" : user_id, "permissions" : permissions}
+        return json.dumps(return_permissions)
 
     def close_client(self):
         self.client.close()
@@ -123,6 +158,7 @@ if __name__ == "__main__":
     if(join == "c"):
         client = Client(name, str(uuid.uuid4()))
         client.create_session()
+
     elif(join == "j"):
         session_id = input("what session do you want to join")
         client = Client(name, str(uuid.uuid4()))
