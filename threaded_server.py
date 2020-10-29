@@ -3,7 +3,7 @@ import threading
 import json
 import random, string
 from time import sleep
-#hello 
+#hello
 PREFIX = 64
 PORT = 5060
 SERVER = ''
@@ -11,14 +11,14 @@ SERVER = ''
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["CTS", "CTC", "INIT","RECV","BROADCAST", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED"]
+HEADERS = ["CTS", "CTC", "INIT","RECV","BROADCAST", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS"]
 
 class Server:
     def __init__(self):
         self.server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.server.bind(ADDR)
-        self.connections = {}
-        self.sessions = {}
+        self.connections = {} #dictionary of all connections
+        self.sessions = {} #dictionary of all sessions. Consists of a host & a sub dictionary of users
 
 
 
@@ -35,7 +35,7 @@ class Server:
         while connected:
             try:
                 msg_length = conn.recv(PREFIX).decode(FORMAT)
-            except Exception as ex:
+            except:
                 print(f"[{addr}] DISCONNECTED")
                 self.handle_unexpected_disconnect(client_id,conn)
                 return
@@ -69,12 +69,21 @@ class Server:
                         self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
                         client_id = message["ID"]
                         self.broadcast_to_session(session_id, "BROADCAST_S", f"[NEW USER HAS JOINED YOUR SESSION] Welcome! {msg['display_name']}", exclude=[client_id])
+                        host = self.sessions[session_id]["HOST"]["ID"]
+                        self.send("USER_JOINED", host, client_id)
                     else:
                         self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
                         self.send("FAILURE", message["ID"], "Session does not exist")
                         self.send(DISCONNECT_MESSAGE,message["ID"],DISCONNECT_MESSAGE)
                         self.delete_connection_entry(message["ID"])
                         break
+                elif message["HEADER"] == "SET_PERMISSIONS":
+                    msg = json.loads(message["MESSAGE"])
+                    user_id = msg["client_id"]
+                    permissions = json.loads(msg["permissions"])
+                    for key in permissions.keys():
+                        self.set_permissions(user_id,key,permissions[key])
+                    self.print_sessions()
 
                 elif message["HEADER"] == "BROADCAST_S":
                     session_id = self.connections[message["ID"]]["session_id"]
@@ -161,6 +170,13 @@ class Server:
             conn.send(send_length)
             conn.send(message)
 
+    def set_permissions(self, user, permission, value):
+        session = self.get_session_from_user(user)
+        if permission in self.sessions[session]["USERS"][user]["permissions"].keys():
+            self.sessions[session]["USERS"][user]["permissions"][permission] = value
+            return True
+        else:
+            return False
     #-----------------------------HELPER FUNCTIONS-----------------------------#
     def create_disconnect_message(self,dest, reason):
         return self.create_message(DISCONNECT_MESSAGE, dest, reason)
@@ -284,7 +300,13 @@ class Server:
         """
         self.sessions[session_id]["USERS"][client_id] = {
             "display_name"  :display_name,
-            "permissions"   : {}
+            "permissions"   : {
+                "add_to_queue"      : True,
+                "remove_from_queue" : True,
+                "pause"             : True,
+                "play"              : True,
+                "skip"              : True
+            }
         }
 
     def create_session(self,session_id,host_id,host_name,host_user,host_pass):
@@ -361,10 +383,14 @@ class Server:
         print(f"[STARTING] server is starting\nListening on {SERVER}:{PORT}")
         connections = threading.Thread(target = self.show_connections)
         connections.start()
+
         while True:
             conn, addr = self.server.accept()
             thread = threading.Thread(target = self.handle_client, args = (conn,addr))
             thread.start()
+
+
+
 
 if __name__ == "__main__":
     server = Server()
