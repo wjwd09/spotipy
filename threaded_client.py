@@ -9,9 +9,12 @@ PREFIX = 64
 PORT = 5060
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-#SERVER = "10.0.0.18"
-SERVER = socket.gethostbyname(socket.gethostname())
-ADDR = (SERVER,PORT)
+#LOCAL_SERVER = "10.0.0.17"
+LOCAL_SERVER = socket.gethostbyname(socket.gethostname())
+PUBLIC_SERVER = "68.84.71.235"
+LOCAL_ADDR = (LOCAL_SERVER,PORT)
+
+PUBLIC_ADDR = (PUBLIC_SERVER,PORT)
 
 HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS"]
 
@@ -22,7 +25,19 @@ class Client:
         self.spotify_user = spotify_user
         self.spotify_pass = spotify_pass
         self.client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.client.connect(ADDR)
+        self.local = False
+        try:
+            self.client.connect(PUBLIC_ADDR)
+        except:
+            self.local = True
+
+        if self.local:
+            try:
+                self.client.connect(LOCAL_ADDR)
+            except Exception as ex:
+                print(str(ex))
+                return
+
         self.receiver = threading.Thread(target=self.recv_msg)
         self.receiver.start()
         self.connected = True
