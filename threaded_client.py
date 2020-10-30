@@ -5,6 +5,12 @@ import threading
 import ctypes
 from time import sleep
 
+#---- Spotipy Client Constants ----
+SCOPE = "user-read-playback-state user-modify-playback-state"
+CLIENT_ID = "cc9859af7bda4fea8c2e74321becb949"
+REDIRECT_URI = "http://localhost:8888/callback"
+#----------------------------------
+
 PREFIX = 64
 PORT = 5060
 FORMAT = 'utf-8'
