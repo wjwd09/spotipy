@@ -45,14 +45,16 @@ class spotifyClient:
         Returns: Access token string or json
         '''
         if getDict:
-            return self.spAuth.get_cached_token()
+            self.accTokenDict = self.spAuth.get_cached_token()
+            return self.accTokenDict
         else:
             return self.accToken
 
 #These lines are for testing
-
+'''
 client = spotifyClient(clientID=CLIENT_ID, redirect_uri=REDIRECT_URI, scope=SCOPE) #Creates client object
 client.authSetup() #Creates auth flow object, redirects user and grabs auth code, and finally grabs access token
 
 print(client.getAccToken()) #Prints access token json, only need "access_token" for now
 
+'''

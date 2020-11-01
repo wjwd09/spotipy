@@ -3,7 +3,8 @@ import threading
 import json
 import random, string
 from time import sleep
-#hello
+from spotifyServer import *
+
 PREFIX = 64
 PORT = 5060
 SERVER = ''
@@ -57,8 +58,9 @@ class Server:
                 elif message["HEADER"] == "CREATE":
                     session_id = "".join(random.choices(string.ascii_letters + string.digits, k = 4))
                     indentifer = json.loads(message["MESSAGE"])
-                    self.create_session(session_id, message["ID"], indentifer["display_name"], indentifer["spotify_user"], indentifer["spotify_pass"])
+                    self.create_session(session_id, message["ID"], indentifer["display_name"], indentifer["spotify_token"])
                     self.add_connection_entry(message["ID"], indentifer["display_name"], session_id, True, conn, addr)
+                    self.create_spotify_player(session_id)
                     client_id = message["ID"]
                     self.send("STC", client_id, f"Your session id is: <{session_id}>")
 
@@ -91,6 +93,10 @@ class Server:
                     self.broadcast_to_session(session_id,"BROADCAST_S", message["MESSAGE"])
                 elif message["HEADER"] == "BROADCAST":
                     self.broadcast_to_all("BROADCAST", message["MESSAGE"])
+                elif message["HEADER"] == "PLAYBACK":
+                    session_id = self.connections[message["ID"]]["session_id"]
+                    sp = self.sessions[session_id]["HOST"]["spotify_player"]
+                    sp.toggle_playback()
                 else:
                     print(f"[{addr}] {message['MESSAGE']}")
                     self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
@@ -310,7 +316,7 @@ class Server:
             }
         }
 
-    def create_session(self,session_id,host_id,host_name,host_user,host_pass):
+    def create_session(self,session_id,host_id,host_name,spotify_token):
         """
         creates a session and fills the host entry
         Parameters      : session_id    (str)   -> Represents the id of the session to be created, sets the users to be empty by default
@@ -324,8 +330,8 @@ class Server:
             "HOST" : {
                 "ID"            : host_id,
                 "NAME"          : host_name,
-                "spotify_user"  : host_user,
-                "spotify_pass"  : host_pass
+                "spotify_token" : spotify_token,
+                "spotify_player": None
             },
             "USERS" : {}
         }
@@ -357,6 +363,10 @@ class Server:
 
     def get_num_connections(self):
         return threading.activeCount() - 2
+
+    def create_spotify_player(self, session_id):
+        token = self.sessions[session_id]["HOST"]["spotify_token"]
+        self.sessions[session_id]["HOST"]["spotify_player"] = spotifyServer(accToken=token, accTokenDict=None)
 
     #-----------------------------END HELPER FUNCTIONS-----------------------------#
 

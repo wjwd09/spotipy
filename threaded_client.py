@@ -4,6 +4,7 @@ import uuid
 import threading
 import ctypes
 from time import sleep
+from spotifyClient import spotifyClient
 
 #---- Spotipy Client Constants ----
 SCOPE = "user-read-playback-state user-modify-playback-state"
@@ -17,19 +18,19 @@ FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
 LOCAL_SERVER = "10.0.0.17"
 #LOCAL_SERVER = socket.gethostbyname(socket.gethostname())
-PUBLIC_SERVER = "68.84.71.235"
+PUBLIC_SERVER = "127.0.0.1"
+#PUBLIC_SERVER = "68.84.71.235"
 LOCAL_ADDR = (LOCAL_SERVER,PORT)
 
 PUBLIC_ADDR = (PUBLIC_SERVER,PORT)
 
-HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS"]
+HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS", "PLAYBACK"]
 
 class Client:
-    def __init__(self, name, id, spotify_user="",spotify_pass=""):
+    def __init__(self, name, id):
         self.name = name
         self.id = id
-        self.spotify_user = spotify_user
-        self.spotify_pass = spotify_pass
+        self.spotify_Client = None
         self.client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.local = False
         try:
@@ -52,8 +53,7 @@ class Client:
     def create_session(self):
         msg = {
             "display_name"  : f"{self.name}",
-            "spotify_user"  : f"{self.spotify_user}",
-            "spotify_pass"  : f"{self.spotify_pass}",
+            "spotify_token"  : f"{self.spotify_Client.accToken}"
         }
         msg = json.dumps(msg)
         self.send("CREATE", "Server", msg)
@@ -156,6 +156,11 @@ class Client:
             self.client.send(send_length)
             self.client.send(message)
 
+    def spotifySetup(self):
+        self.spotify_Client = spotifyClient(clientID=CLIENT_ID, redirect_uri=REDIRECT_URI, scope=SCOPE)
+        self.spotify_Client.authSetup()
+        self.spotify_Client.getAccToken(getDict=False)
+
 if __name__ == "__main__":
     name = input("enter your name")
     join = input("Create or join")
@@ -163,6 +168,7 @@ if __name__ == "__main__":
 
     if(join == "c"):
         client = Client(name, str(uuid.uuid4()))
+        client.spotifySetup()
         client.create_session()
 
     elif(join == "j"):
