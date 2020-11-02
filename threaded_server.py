@@ -60,7 +60,7 @@ class Server:
                     indentifer = json.loads(message["MESSAGE"])
                     self.create_session(session_id, message["ID"], indentifer["display_name"], indentifer["spotify_token"])
                     self.add_connection_entry(message["ID"], indentifer["display_name"], session_id, True, conn, addr)
-                    #self.create_spotify_player(session_id)
+                    self.create_spotify_player(session_id)
                     client_id = message["ID"]
                     self.send("STC", client_id, f"Your session id is: <{session_id}>")
 
