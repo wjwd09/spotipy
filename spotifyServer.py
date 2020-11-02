@@ -33,6 +33,7 @@ class spotifyServer:
         Inputs: none
         Returns: none
         '''
+<<<<<<< HEAD
         try:
             if self.sp.current_playback()['is_playing']:
                 self.sp.pause_playback()
@@ -48,6 +49,15 @@ class spotifyServer:
         running = self.sp.current_playback()
         if running == None:
             return False
+=======
+
+        playback = self.sp.current_playback()
+        if playback is None:
+            print("No available Spotify devices\n")
+        elif playback['is_playing']:
+            self.sp.pause_playback()
+            print("Paused")
+>>>>>>> 5479630a245e2aa2ea94aa8ae4bcf11afc61f615
         else:
             return True
 

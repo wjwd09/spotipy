@@ -58,7 +58,7 @@ class Client:
     def create_session(self):
         msg = {
             "display_name"  : f"{self.name}",
-            "spotify_token"  : f"{self.spotify_Client.accToken}"
+            "spotify_token"  : f"{json.dumps(self.spotify_Client.accTokenDict)}"
         }
         msg = json.dumps(msg)
         self.send("CREATE", "Server", msg)
@@ -164,7 +164,7 @@ class Client:
     def spotifySetup(self):
         self.spotify_Client = spotifyClient(clientID=CLIENT_ID, redirect_uri=REDIRECT_URI, scope=SCOPE)
         self.spotify_Client.authSetup()
-        self.spotify_Client.getAccToken(getDict=False)
+        self.spotify_Client.getAccToken(getDict=True)
 
 if __name__ == "__main__":
     name = input("enter your name")
