@@ -33,12 +33,24 @@ class spotifyServer:
         Inputs: none
         Returns: none
         '''
-        if self.sp.current_playback()['is_playing']:
-            self.sp.pause_playback()
-            print("Paused")
+        try:
+            if self.sp.current_playback()['is_playing']:
+                self.sp.pause_playback()
+                print("Paused")
+            else:
+                self.sp.start_playback()
+                print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
+            return True
+        except:
+            return False
+
+    def is_spotify_running(self):
+        running = self.sp.current_playback()
+        if running == None:
+            return False
         else:
-            self.sp.start_playback()
-            print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
+            return True
+
 
     # Spotify Functions
 

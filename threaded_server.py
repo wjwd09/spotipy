@@ -58,10 +58,12 @@ class Server:
                 elif message["HEADER"] == "CREATE":
                     session_id = "".join(random.choices(string.ascii_uppercase + string.digits, k = 4))
                     indentifer = json.loads(message["MESSAGE"])
+                    client_id = message["ID"]
                     self.create_session(session_id, message["ID"], indentifer["display_name"], indentifer["spotify_token"])
                     self.add_connection_entry(message["ID"], indentifer["display_name"], session_id, True, conn, addr)
-                    #self.create_spotify_player(session_id)
-                    client_id = message["ID"]
+                    self.create_spotify_player(session_id)
+                    if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
+                        self.send("STC", client_id, "PLEASE START SPOTIFY")
                     self.send("STC", client_id, f"Your session id is: <{session_id}>")
 
                 elif message["HEADER"] == "JOIN":
@@ -96,7 +98,8 @@ class Server:
                 elif message["HEADER"] == "PLAYBACK":
                     session_id = self.connections[message["ID"]]["session_id"]
                     sp = self.sessions[session_id]["HOST"]["spotify_player"]
-                    sp.toggle_playback()
+                    if not sp.toggle_playback():
+                        self.broadcast_to_session(self.get_session_from_user(client_id), "FAILURE", "Please Start Spotify")
                 else:
                     print(f"[{addr}] {message['MESSAGE']}")
                     self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
