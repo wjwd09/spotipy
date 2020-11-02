@@ -33,6 +33,11 @@ class Client:
         self.spotify_Client = None
         self.client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.local = False
+        
+        self.connected = True
+        self.recieving = False
+
+    def connect_to_server(self):
         try:
             self.client.connect(PUBLIC_ADDR)
         except:
@@ -44,7 +49,7 @@ class Client:
             except Exception as ex:
                 print(str(ex))
                 return
-
+        
         self.receiver = threading.Thread(target=self.recv_msg)
         self.receiver.start()
         self.connected = True
@@ -169,11 +174,13 @@ if __name__ == "__main__":
     if(join == "c"):
         client = Client(name, str(uuid.uuid4()))
         client.spotifySetup()
+        client.connect_to_server()
         client.create_session()
 
     elif(join == "j"):
         session_id = input("what session do you want to join")
         client = Client(name, str(uuid.uuid4()))
+        client.connect_to_server()
         client.join_session(session_id)
 
     while True:
