@@ -58,7 +58,8 @@ class Server:
                 elif message["HEADER"] == "CREATE":
                     session_id = "".join(random.choices(string.ascii_uppercase + string.digits, k = 4))
                     indentifer = json.loads(message["MESSAGE"])
-                    self.create_session(session_id, message["ID"], indentifer["display_name"], indentifer["spotify_token"])
+                    tokenDict = json.loads(indentifer["spotify_token"])
+                    self.create_session(session_id, message["ID"], indentifer["display_name"], tokenDict)
                     self.add_connection_entry(message["ID"], indentifer["display_name"], session_id, True, conn, addr)
                     self.create_spotify_player(session_id)
                     client_id = message["ID"]
@@ -366,7 +367,7 @@ class Server:
 
     def create_spotify_player(self, session_id):
         token = self.sessions[session_id]["HOST"]["spotify_token"]
-        self.sessions[session_id]["HOST"]["spotify_player"] = spotifyServer(accToken=token, accTokenDict=None)
+        self.sessions[session_id]["HOST"]["spotify_player"] = spotifyServer(accToken=None, accTokenDict=token)
 
     #-----------------------------END HELPER FUNCTIONS-----------------------------#
 
