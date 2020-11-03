@@ -60,7 +60,7 @@ class Server:
                     indentifer = json.loads(message["MESSAGE"])
                     tokenDict = json.loads(indentifer["spotify_token"])
                     client_id = message["ID"]
-                    self.create_session(session_id, message["ID"], indentifer["display_name"], indentifer["spotify_token"])
+                    self.create_session(session_id, message["ID"], indentifer["display_name"], tokenDict)
                     self.add_connection_entry(message["ID"], indentifer["display_name"], session_id, True, conn, addr)
                     self.create_spotify_player(session_id)
                     if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
@@ -101,6 +101,10 @@ class Server:
                     sp = self.sessions[session_id]["HOST"]["spotify_player"]
                     if not sp.toggle_playback():
                         self.broadcast_to_session(self.get_session_from_user(client_id), "FAILURE", "Please Start Spotify")
+                elif message["HEADER"] == "SEARCH":
+                    session_id = self.get_session_from_user(message["ID"])
+                    sp = self.get_session_player(session_id)
+                    sp.search(message["MESSAGE"])
                 else:
                     print(f"[{addr}] {message['MESSAGE']}")
                     self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
@@ -371,6 +375,9 @@ class Server:
     def create_spotify_player(self, session_id):
         token = self.sessions[session_id]["HOST"]["spotify_token"]
         self.sessions[session_id]["HOST"]["spotify_player"] = spotifyServer(accToken=None, accTokenDict=token)
+    
+    def get_session_player(self, session_id):
+        return self.sessions[session_id]["HOST"]["spotify_player"]
 
     #-----------------------------END HELPER FUNCTIONS-----------------------------#
 

@@ -24,7 +24,7 @@ LOCAL_ADDR = (LOCAL_SERVER,PORT)
 
 PUBLIC_ADDR = (PUBLIC_SERVER,PORT)
 
-HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS", "PLAYBACK"]
+HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS", "PLAYBACK", "SEARCH"]
 
 class Client:
     def __init__(self, name, id):
@@ -128,6 +128,8 @@ class Client:
         self.client.close()
         self.connected = False
 
+    def search(self, track_name):
+        self.send("SEARCH", "Server", track_name)
 
     def create_message(self, header, dest, msg):
         if header in HEADERS:
