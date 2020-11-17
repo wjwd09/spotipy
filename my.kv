@@ -1,0 +1,139 @@
+WindowManager:
+    StartWindow:
+    CreateWindow:
+    JoinWindow:
+    MainWindow:
+    SearchWindow:
+
+<StartWindow>:
+    name: "start"
+
+    GridLayout:
+        rows:2
+        
+        Button: 
+            text: "Create Session"
+            on_release: 
+                app.root.current = "create_window"
+                root.manager.transition.direction = "left"
+
+        Button:
+            text: "Join Session"
+            on_release: 
+                app.root.current = "join_window"
+                root.manager.transition.direction = "left"
+
+
+<CreateWindow>:
+    name: "create_window"
+
+    GridLayout:
+        rows:3
+        Label: 
+            text: "Enter Your Name"
+        TextInput:
+            id: create_username
+            multiline: False
+
+        GridLayout:
+            cols:2
+            Button:
+                text: "Go Back"
+                on_release: 
+                    app.root.current = "start"
+                    root.manager.transition.direction = "right"
+
+            Button:
+                text: "Create"
+                on_release:
+                    app.client.set_name(create_username.text)
+                    app.client.spotifySetup()
+                    app.client.connect_to_server()
+                    app.client.create_session()
+                    app.root.current = "main"
+                    root.manager.transition.direction = "left"
+
+
+<JoinWindow>:
+    name: "join_window"
+
+    GridLayout:
+        rows:5
+        Label:
+            text: "Enter Your Name"
+
+        TextInput:
+            id: join_username
+            multiline: False
+
+        Label:
+            text: "Enter Session ID"
+        
+        TextInput:
+            id: session_id
+            multiline: False
+
+        GridLayout:
+            cols:2
+            Button:
+                text: "Go Back"
+                on_release: 
+                    app.root.current = "start"
+                    root.manager.transition.direction = "right"
+            Button:
+                text: "join"
+                on_release:
+                    app.client.set_name(join_username.text)
+                    app.client.connect_to_server()
+                    app.client.join_session(session_id.text)
+
+<MainWindow>:
+    name: "main"
+
+    GridLayout:
+        rows:4
+        Label:
+            text: "Current Song"
+        
+        Label:
+            text: "Queue"
+
+        Label:
+            text: "Song Controls"
+
+        GridLayout:
+            cols:3
+
+            
+            Button:
+                text: "Search"
+                on_release:
+                    app.root.current = "search"
+                    root.manager.transition.direction = "left"
+
+            Button:
+                text: "Users & Permissions"
+
+            Button:
+                text: "End Session"
+                on_release:
+                    app.client.send("!DISCONNECT", "Server", "!DISCONNECT")
+                    app.root.current = "start"
+                    root.manager.transition.direction = "right"
+
+<SearchWindow>
+    name: "search"
+    GridLayout:
+        rows:2
+        TextInput:
+            id:search_text
+            multiline: False
+        GridLayout:
+            cols:2
+            Button:
+                text: "Search"
+            Button:
+                text: "Go Back"
+                on_release: 
+                    app.root.current = "main"
+                    root.manager.transition.direction = "right"

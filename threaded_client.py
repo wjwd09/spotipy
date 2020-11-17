@@ -27,15 +27,19 @@ PUBLIC_ADDR = (PUBLIC_SERVER,PORT)
 HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS", "PLAYBACK", "SEARCH"]
 
 class Client:
-    def __init__(self, name, id):
-        self.name = name
-        self.id = id
+    def __init__(self):
+        self.name = ""
+        self.id = str(uuid.uuid4())
         self.spotify_Client = None
         self.client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.local = False
         
         self.connected = True
         self.recieving = False
+
+    def set_name(self, name):
+        self.name = name
+        print(f"username set: {name}")
 
     def connect_to_server(self):
         try:
@@ -50,8 +54,8 @@ class Client:
                 print(str(ex))
                 return
         
-        self.receiver = threading.Thread(target=self.recv_msg)
-        self.receiver.start()
+        #self.receiver = threading.Thread(target=self.recv_msg)
+        #self.receiver.start()
         self.connected = True
         self.recieving = False
 
@@ -74,7 +78,7 @@ class Client:
     def create_disconnect_message(self):
         return self.create_message(DISCONNECT_MESSAGE, "Server", DISCONNECT_MESSAGE)
 
-    def recv_msg(self):
+    def recv_msg(self, queue):
         while True:
             try:
                 msg = self.client.recv(PREFIX).decode(FORMAT)
@@ -174,14 +178,16 @@ if __name__ == "__main__":
 
 
     if(join == "c"):
-        client = Client(name, str(uuid.uuid4()))
+        client = Client()
+        client.set_name(name)
         client.spotifySetup()
         client.connect_to_server()
         client.create_session()
 
     elif(join == "j"):
         session_id = input("what session do you want to join")
-        client = Client(name, str(uuid.uuid4()))
+        client = Client()
+        client.set_name(name)
         client.connect_to_server()
         client.join_session(session_id)
 
@@ -195,5 +201,4 @@ if __name__ == "__main__":
             break
 
     print("closing client")
-    del client
-    exit()
+    

@@ -77,6 +77,7 @@ class Server:
                         self.broadcast_to_session(session_id, "BROADCAST_S", f"[NEW USER HAS JOINED YOUR SESSION] Welcome! {msg['display_name']}", exclude=[client_id])
                         host = self.sessions[session_id]["HOST"]["ID"]
                         self.send("USER_JOINED", host, client_id)
+                        self.send("USER_JOINED", client_id, f"Welcome to session {session_id}")
                     else:
                         self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
                         self.send("FAILURE", message["ID"], "Session does not exist")
@@ -107,7 +108,10 @@ class Server:
                     sp.search(message["MESSAGE"])
                 else:
                     print(f"[{addr}] {message['MESSAGE']}")
-                    self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
+                    #self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
+                    for i in range(10):
+                        sleep(5)
+                        conn.send(message["MESSAGE"].encode(FORMAT))
 
         print("Thread Closing")
 
@@ -158,7 +162,7 @@ class Server:
                 self.delete_connection_entry(client_id)
                 self.disconnect(conn,client_id,"You Disconnected")
         except:
-            pass
+            print("Something went wrong")
 
 
 
@@ -183,6 +187,7 @@ class Server:
 
             conn = self.connections[dest]["CONN"]
             conn.send(send_length)
+            sleep(0.1)
             conn.send(message)
 
     def set_permissions(self, user, permission, value):
@@ -408,6 +413,7 @@ class Server:
 
         while True:
             conn, addr = self.server.accept()
+            conn.setblocking(1)
             thread = threading.Thread(target = self.handle_client, args = (conn,addr))
             thread.start()
 
