@@ -67,7 +67,14 @@ class spotifyServer:
         time.sleep(1)
         print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
 
-'''
+    def search(self, song):
+        results = self.sp.search(q=song, limit=10, offset=0, type='track')
+        for item in results['tracks']['items']:
+            print("Track: " + item['name'])
+            print("Artist: " + item['artists'][0]['name'])
+            print("URI: " + item['uri'] + "\n")
+
+
 #These lines are for testing, will need to get access token from running spotifyClient.py and input here
 token = input("Enter access token:\n")
 server = spotifyServer(accToken=token, accTokenDict=None)
@@ -82,4 +89,7 @@ while True:
             server.previous_track()
         elif cmd == "4":
             break
-'''
+        elif cmd == "5":
+            song = input("Enter track to search\n")
+            server.search(song)
+
