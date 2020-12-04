@@ -101,6 +101,8 @@ class MyMainApp(App):
                     self.print_something(users)
                     kv.get_screen("users").results = list(users)
                     kv.get_screen("users").search_btn_pressed()
+                elif msg["MESSAGE"] == "PLEASE START SPOTIFY":
+                    kv.get_screen("main").ids.current_song_text.text = "Please Start SPOTIFY"
 
             except:
                 pass

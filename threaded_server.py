@@ -64,17 +64,19 @@ class Server:
                     self.add_connection_entry(message["ID"], indentifer["display_name"], session_id, True, conn, addr)
                     self.create_spotify_player(session_id)
                     if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
-                        #self.send("STC", client_id, "PLEASE START SPOTIFY")
-                        pass
+                        self.send("STC", client_id, "PLEASE START SPOTIFY")
                     self.send("SESSION_ID", client_id,  str(session_id))
 
                 elif message["HEADER"] == "GET_CURRENT_SONG":
                     player = self.get_session_player(self.get_session_from_user(message["ID"]))
-                    current_track = {}
-                    current_track["name"] = player.sp.currently_playing()['item']['name']
-                    current_track["artist"] = player.sp.currently_playing()['item']['album']['artists'][0]['name']
-                    track_json = json.dumps(current_track)
-                    self.send("CURRENT_SONG", message["ID"],track_json)
+                    if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
+                        self.send("STC", client_id, "PLEASE START SPOTIFY")
+                    else:
+                        current_track = {}
+                        current_track["name"] = player.sp.currently_playing()['item']['name']
+                        current_track["artist"] = player.sp.currently_playing()['item']['album']['artists'][0]['name']
+                        track_json = json.dumps(current_track)
+                        self.send("CURRENT_SONG", message["ID"],track_json)
 
                 elif message["HEADER"] == "SKIP":
                     player = self.get_session_player(self.get_session_from_user(message["ID"]))
@@ -87,7 +89,7 @@ class Server:
                 elif message["HEADER"] == "PLAY":
                     player = self.get_session_player(self.get_session_from_user(message["ID"]))
                     player.toggle_playback()
-                    
+
                 elif message["HEADER"] == "GET_USERS":
                     session_id = self.get_session_from_user(message["ID"])
                     users = self.sessions[session_id]["USERS"]
@@ -104,6 +106,7 @@ class Server:
                         self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
                         client_id = message["ID"]
                         self.broadcast_to_session(session_id, "BROADCAST_S", f"[NEW USER HAS JOINED YOUR SESSION] Welcome! {msg['display_name']}", exclude=[client_id])
+                        self.send("SESSION_ID", message["ID"], session_id)
                         host = self.sessions[session_id]["HOST"]["ID"]
                         self.send("USER_JOINED", host, client_id)
                         self.send("USER_JOINED", client_id, f"Welcome to session {session_id}")
