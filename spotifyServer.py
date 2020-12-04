@@ -67,6 +67,7 @@ class spotifyServer:
         time.sleep(1)
         print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
 
+<<<<<<< HEAD
     def search(self, song):
         results = self.sp.search(q=song, limit=10, offset=0, type='track')
         if results:
@@ -82,6 +83,10 @@ class spotifyServer:
 
     def play_track(self, uriList):
         self.sp.start_playback(uris=uriList)
+=======
+    
+
+>>>>>>> e923e466f077fbb00fd15ebdc8435a12aeb1a4d1
 '''
 #These lines are for testing, will need to get access token from running spotifyClient.py and input here
 token = input("Enter access token:\n")

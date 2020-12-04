@@ -12,7 +12,7 @@ SERVER = ''
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["CTS","STC", "CTC", "INIT","RECV","BROADCAST", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS"]
+HEADERS = ["CTS","STC", "CURRENT_SONG","CTC", "INIT","RECV","BROADCAST","SESSION_ID", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS"]
 
 class Server:
     def __init__(self):
@@ -65,7 +65,38 @@ class Server:
                     self.create_spotify_player(session_id)
                     if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
                         self.send("STC", client_id, "PLEASE START SPOTIFY")
-                    self.send("STC", client_id, f"Your session id is: <{session_id}>")
+                    self.send("SESSION_ID", client_id,  str(session_id))
+
+                elif message["HEADER"] == "GET_CURRENT_SONG":
+                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                    if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
+                        self.send("STC", client_id, "PLEASE START SPOTIFY")
+                    else:
+                        current_track = {}
+                        current_track["name"] = player.sp.currently_playing()['item']['name']
+                        current_track["artist"] = player.sp.currently_playing()['item']['album']['artists'][0]['name']
+                        track_json = json.dumps(current_track)
+                        self.send("CURRENT_SONG", message["ID"],track_json)
+
+                elif message["HEADER"] == "SKIP":
+                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                    player.next_track()
+
+                elif message["HEADER"] == "REWIND":
+                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                    player.previous_track()
+
+                elif message["HEADER"] == "PLAY":
+                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                    player.toggle_playback()
+
+                elif message["HEADER"] == "GET_USERS":
+                    session_id = self.get_session_from_user(message["ID"])
+                    users = self.sessions[session_id]["USERS"]
+                    user_names = []
+                    for key in users.keys():
+                        user_names.append(users[key]["display_name"])
+                    self.send("USERS", message["ID"], json.dumps(user_names))
 
                 elif message["HEADER"] == "JOIN":
                     msg = json.loads(message["MESSAGE"])
@@ -75,8 +106,10 @@ class Server:
                         self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
                         client_id = message["ID"]
                         self.broadcast_to_session(session_id, "BROADCAST_S", f"[NEW USER HAS JOINED YOUR SESSION] Welcome! {msg['display_name']}", exclude=[client_id])
+                        self.send("SESSION_ID", message["ID"], session_id)
                         host = self.sessions[session_id]["HOST"]["ID"]
                         self.send("USER_JOINED", host, client_id)
+                        self.send("USER_JOINED", client_id, f"Welcome to session {session_id}")
                     else:
                         self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
                         self.send("FAILURE", message["ID"], "Session does not exist")
@@ -107,7 +140,10 @@ class Server:
                     sp.search(message["MESSAGE"])
                 else:
                     print(f"[{addr}] {message['MESSAGE']}")
-                    self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
+                    #self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
+                    for i in range(10):
+                        sleep(5)
+                        conn.send(message["MESSAGE"].encode(FORMAT))
 
         print("Thread Closing")
 
@@ -158,7 +194,7 @@ class Server:
                 self.delete_connection_entry(client_id)
                 self.disconnect(conn,client_id,"You Disconnected")
         except:
-            pass
+            print("Something went wrong")
 
 
 
@@ -183,6 +219,7 @@ class Server:
 
             conn = self.connections[dest]["CONN"]
             conn.send(send_length)
+            sleep(0.1)
             conn.send(message)
 
     def set_permissions(self, user, permission, value):
@@ -375,6 +412,7 @@ class Server:
     def create_spotify_player(self, session_id):
         token = self.sessions[session_id]["HOST"]["spotify_token"]
         self.sessions[session_id]["HOST"]["spotify_player"] = spotifyServer(accToken=None, accTokenDict=token)
+
     
     def get_session_player(self, session_id):
         return self.sessions[session_id]["HOST"]["spotify_player"]
@@ -408,6 +446,7 @@ class Server:
 
         while True:
             conn, addr = self.server.accept()
+            conn.setblocking(1)
             thread = threading.Thread(target = self.handle_client, args = (conn,addr))
             thread.start()
 

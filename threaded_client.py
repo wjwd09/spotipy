@@ -24,18 +24,23 @@ LOCAL_ADDR = (LOCAL_SERVER,PORT)
 
 PUBLIC_ADDR = (PUBLIC_SERVER,PORT)
 
-HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS", "PLAYBACK", "SEARCH"]
+HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS", "PLAYBACK", "SEARCH", "GET_CURRENT_SONG","PLAY","REWIND","SKIP","GET_USERS"]
 
 class Client:
-    def __init__(self, name, id):
-        self.name = name
-        self.id = id
+    def __init__(self, queue = None):
+        self.name = ""
+        self.session_id = ""
+        self.queue = queue
+        self.id = str(uuid.uuid4())
         self.spotify_Client = None
         self.client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.local = False
         
         self.connected = True
         self.recieving = False
+
+    def set_name(self, name):
+        self.name = name
 
     def connect_to_server(self):
         try:
@@ -82,20 +87,8 @@ class Client:
                 try:
                     raw_msg = self.client.recv(msg_len).decode(FORMAT)
                     message = json.loads(raw_msg)
-                    if message["HEADER"] == DISCONNECT_MESSAGE:
-                        print(message["MESSAGE"])
-                        ctypes.windll.user32.MessageBoxW(0, message["MESSAGE"], str(self.name), 1)
-                        self.close_client()
-                        break
-                    elif message["HEADER"] == "USER_JOINED":
-                        # self.recieving = True
-                        # user_permissions = self.set_permissions(message["MESSAGE"])
-                        # self.send("SET_PERMISSIONS", "Server", user_permissions)
-                        # self.recieving = False
-                        pass
-                    else:
-                        print(message["MESSAGE"])
-                        ctypes.windll.user32.MessageBoxW(0, message["MESSAGE"], str(self.name), 1)
+                    self.queue.put(message)
+                        
                 except:
                     print(f"[SERVER NOT RESPONDING] closing client")
                     self.close_client()
@@ -174,14 +167,16 @@ if __name__ == "__main__":
 
 
     if(join == "c"):
-        client = Client(name, str(uuid.uuid4()))
+        client = Client()
         client.spotifySetup()
+        client.set_name(name)
         client.connect_to_server()
         client.create_session()
 
     elif(join == "j"):
         session_id = input("what session do you want to join")
-        client = Client(name, str(uuid.uuid4()))
+        client = Client()
+        client.set_name(name)
         client.connect_to_server()
         client.join_session(session_id)
 
