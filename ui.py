@@ -37,7 +37,6 @@ class MyMainApp(App):
     def build(self):
         self.client = Client()
         self.recv_thread = threading.Thread(target = self.client.recv_msg)
-        self.recv_thread.start()
         return kv
     
 

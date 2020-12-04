@@ -50,6 +50,7 @@ WindowManager:
                     app.client.spotifySetup()
                     app.client.connect_to_server()
                     app.client.create_session()
+                    app.recv_thread.start()
                     app.root.current = "main"
                     root.manager.transition.direction = "left"
 

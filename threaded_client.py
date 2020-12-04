@@ -54,8 +54,8 @@ class Client:
                 print(str(ex))
                 return
         
-        #self.receiver = threading.Thread(target=self.recv_msg)
-        #self.receiver.start()
+        self.receiver = threading.Thread(target=self.recv_msg)
+        self.receiver.start()
         self.connected = True
         self.recieving = False
 
@@ -78,7 +78,7 @@ class Client:
     def create_disconnect_message(self):
         return self.create_message(DISCONNECT_MESSAGE, "Server", DISCONNECT_MESSAGE)
 
-    def recv_msg(self, queue):
+    def recv_msg(self):
         while True:
             try:
                 msg = self.client.recv(PREFIX).decode(FORMAT)
@@ -99,6 +99,7 @@ class Client:
                         pass
                     else:
                         print(message["MESSAGE"])
+                        f.write(message["MESSAGE"])
                         ctypes.windll.user32.MessageBoxW(0, message["MESSAGE"], str(self.name), 1)
                 except:
                     print(f"[SERVER NOT RESPONDING] closing client")
@@ -183,6 +184,7 @@ if __name__ == "__main__":
         client.spotifySetup()
         client.connect_to_server()
         client.create_session()
+        
 
     elif(join == "j"):
         session_id = input("what session do you want to join")
