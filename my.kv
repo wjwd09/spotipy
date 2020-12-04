@@ -46,13 +46,14 @@ WindowManager:
             Button:
                 text: "Create"
                 on_release:
+                    app.print_something("hello")
                     app.client.set_name(create_username.text)
                     app.client.spotifySetup()
                     app.client.connect_to_server()
                     app.client.create_session()
-                    app.recv_thread.start()
                     app.root.current = "main"
                     root.manager.transition.direction = "left"
+                    root.session_id_text = app.client.session_id
 
 
 <JoinWindow>:
@@ -92,7 +93,13 @@ WindowManager:
     name: "main"
 
     GridLayout:
-        rows:4
+        
+        rows:5
+
+        Label:
+            id: session_id_text
+            text: root.session_id_text
+
         Label:
             text: "Current Song"
         
@@ -114,6 +121,8 @@ WindowManager:
 
             Button:
                 text: "Users & Permissions"
+                on_release:
+                    session_id_text.text = app.client.session_id
 
             Button:
                 text: "End Session"
