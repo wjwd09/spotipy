@@ -82,7 +82,7 @@ class spotifyServer:
 
     def play_track(self, uriList):
         self.sp.start_playback(uris=uriList)
-
+'''
 #These lines are for testing, will need to get access token from running spotifyClient.py and input here
 token = input("Enter access token:\n")
 server = spotifyServer(accToken=token, accTokenDict=None)
@@ -105,3 +105,4 @@ while True:
             uri[0] = input("Enter song uri to play\n")
             server.play_track(uri)
 
+'''
