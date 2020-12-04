@@ -24,7 +24,7 @@ LOCAL_ADDR = (LOCAL_SERVER,PORT)
 
 PUBLIC_ADDR = (PUBLIC_SERVER,PORT)
 
-HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS", "PLAYBACK", "SEARCH"]
+HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS", "PLAYBACK", "SEARCH", "GET_CURRENT_SONG","PLAY","REWIND","SKIP","GET_USERS"]
 
 class Client:
     def __init__(self, queue = None):
@@ -87,26 +87,8 @@ class Client:
                 try:
                     raw_msg = self.client.recv(msg_len).decode(FORMAT)
                     message = json.loads(raw_msg)
-                    if message["HEADER"] == DISCONNECT_MESSAGE:
-                        print(message["MESSAGE"])
-                        #ctypes.windll.user32.MessageBoxW(0, message["MESSAGE"], str(self.name), 1)
-                        self.close_client()
-                        break
-
-                    elif message["HEADER"] == "SESSION_ID":
-                        self.session_id = message["MESSAGE"]
-                        self.queue.put(self.session_id)
-
-                    elif message["HEADER"] == "USER_JOINED":
-                        # self.recieving = True
-                        # user_permissions = self.set_permissions(message["MESSAGE"])
-                        # self.send("SET_PERMISSIONS", "Server", user_permissions)
-                        # self.recieving = False
-                        pass
-                    else:
-                        print(message["MESSAGE"])
-                        self.queue.put(message["MESSAGE"])
-                        #ctypes.windll.user32.MessageBoxW(0, message["MESSAGE"], str(self.name), 1)
+                    self.queue.put(message)
+                        
                 except:
                     print(f"[SERVER NOT RESPONDING] closing client")
                     self.close_client()

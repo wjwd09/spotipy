@@ -12,7 +12,7 @@ SERVER = ''
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["CTS","STC", "CTC", "INIT","RECV","BROADCAST","SESSION_ID", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS"]
+HEADERS = ["CTS","STC", "CURRENT_SONG","CTC", "INIT","RECV","BROADCAST","SESSION_ID", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS"]
 
 class Server:
     def __init__(self):
@@ -67,6 +67,34 @@ class Server:
                         #self.send("STC", client_id, "PLEASE START SPOTIFY")
                         pass
                     self.send("SESSION_ID", client_id,  str(session_id))
+
+                elif message["HEADER"] == "GET_CURRENT_SONG":
+                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                    current_track = {}
+                    current_track["name"] = player.sp.currently_playing()['item']['name']
+                    current_track["artist"] = player.sp.currently_playing()['item']['album']['artists'][0]['name']
+                    track_json = json.dumps(current_track)
+                    self.send("CURRENT_SONG", message["ID"],track_json)
+
+                elif message["HEADER"] == "SKIP":
+                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                    player.next_track()
+
+                elif message["HEADER"] == "REWIND":
+                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                    player.previous_track()
+
+                elif message["HEADER"] == "PLAY":
+                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                    player.toggle_playback()
+                    
+                elif message["HEADER"] == "GET_USERS":
+                    session_id = self.get_session_from_user(message["ID"])
+                    users = self.sessions[session_id]["USERS"]
+                    user_names = []
+                    for key in users.keys():
+                        user_names.append(users[key]["display_name"])
+                    self.send("USERS", message["ID"], json.dumps(user_names))
 
                 elif message["HEADER"] == "JOIN":
                     msg = json.loads(message["MESSAGE"])
@@ -381,6 +409,7 @@ class Server:
     def create_spotify_player(self, session_id):
         token = self.sessions[session_id]["HOST"]["spotify_token"]
         self.sessions[session_id]["HOST"]["spotify_player"] = spotifyServer(accToken=None, accTokenDict=token)
+
     
     def get_session_player(self, session_id):
         return self.sessions[session_id]["HOST"]["spotify_player"]

@@ -4,6 +4,7 @@ WindowManager:
     JoinWindow:
     MainWindow:
     SearchWindow:
+    UsersWindow:
 
 <StartWindow>:
     name: "start"
@@ -46,14 +47,13 @@ WindowManager:
             Button:
                 text: "Create"
                 on_release:
-                    app.print_something("hello")
                     app.client.set_name(create_username.text)
                     app.client.spotifySetup()
                     app.client.connect_to_server()
                     app.client.create_session()
+                    app.start_clock()
                     app.root.current = "main"
                     root.manager.transition.direction = "left"
-                    root.session_id_text = app.client.session_id
 
 
 <JoinWindow>:
@@ -88,6 +88,9 @@ WindowManager:
                     app.client.set_name(join_username.text)
                     app.client.connect_to_server()
                     app.client.join_session(session_id.text)
+                    app.start_clock()
+                    app.root.current = "main"
+                    root.manager.transition.direction = "left"
 
 <MainWindow>:
     name: "main"
@@ -104,10 +107,26 @@ WindowManager:
             text: "Current Song"
         
         Label:
-            text: "Queue"
+            id: current_song_text
+            text: root.current_song_text
 
-        Label:
-            text: "Song Controls"
+        GridLayout:
+            cols:5
+            Label:
+                text: ""
+
+            Button:
+                text: "<<"
+                on_release: app.client.send("REWIND", "Server", "REWIND")
+
+            Button:
+                text: ">"
+                on_release: app.client.send("PLAY", "Server", "PLAY")
+            Button:
+                text: ">>"
+                on_release: app.client.send("SKIP", "Server", "SKIP")
+            Label:
+                text: ""
 
         GridLayout:
             cols:3
@@ -121,9 +140,10 @@ WindowManager:
 
             Button:
                 text: "Users & Permissions"
-                on_release:
-                    session_id_text.text = app.client.session_id
-
+                on_release: 
+                    app.client.send("GET_USERS","Server", "GET_USERS")
+                    app.root.current = "users"
+                    root.manager.transition.direction = "left"
             Button:
                 text: "End Session"
                 on_release:
@@ -147,3 +167,37 @@ WindowManager:
                 on_release: 
                     app.root.current = "main"
                     root.manager.transition.direction = "right"
+
+<UsersWindow>
+    name: "users"
+    scroll_view: scrollviewID
+    top_lbl: lblID
+    grid_l: gridlayoutID
+    AnchorLayout:
+        size_hint: 1, .1   
+        pos_hint: {'x': 0, 'y': .9}
+        anchor_x: 'center'
+        anchor_y: 'center'
+        Label:
+            id: lblID
+            text: 'Button Tester'
+    Button:
+        size_hint: 1, .1   
+        pos_hint: {'x': 0, 'y': .8}
+        text: 'Clear Results'
+        on_release: 
+            root.btn2_pressed()
+            app.root.current = "main"
+            root.manager.transition.direction = "left"
+    ScrollView:
+        id: scrollviewID
+        orientation: 'vertical'
+        pos_hint: {'x': 0, 'y': 0}
+        size_hint: 1, .8
+        bar_width: '8dp'
+        GridLayout:
+            id: gridlayoutID
+            cols: 1
+            size_hint: 1, None
+            row_default_height: 40
+            row_force_default: False

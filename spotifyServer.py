@@ -67,6 +67,8 @@ class spotifyServer:
         time.sleep(1)
         print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
 
+    
+
 '''
 #These lines are for testing, will need to get access token from running spotifyClient.py and input here
 token = input("Enter access token:\n")
