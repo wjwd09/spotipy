@@ -180,15 +180,16 @@ WindowManager:
         anchor_y: 'center'
         Label:
             id: lblID
-            text: 'Button Tester'
+            text: 'Users & Permissions'
     Button:
         size_hint: 1, .1   
         pos_hint: {'x': 0, 'y': .8}
-        text: 'Clear Results'
+        text: 'Go Back'
         on_release: 
-            root.btn2_pressed()
             app.root.current = "main"
             root.manager.transition.direction = "left"
+
+
     ScrollView:
         id: scrollviewID
         orientation: 'vertical'
