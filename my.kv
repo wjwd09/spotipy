@@ -153,18 +153,35 @@ WindowManager:
 
 <SearchWindow>
     name: "search"
-    GridLayout:
-        rows:2
+    widg_id: box_widg
+    scroll_view: scrollviewID
+    BoxLayout:
+        orientation: 'vertical'
+        ScrollView:
+            id: scrollviewID
+            orientation: 'vertical'
+            bar_width: '8dp'
+            BoxLayout:
+                size_hint_y: None
+                row_default_height: 40
+                height: self.minimum_height
+                orientation: 'vertical'
+                id: box_widg
         TextInput:
-            id:search_text
+            size_hint_y: 0.05
+            id: search_text
             multiline: False
-        GridLayout:
-            cols:2
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.1
             Button:
                 text: "Search"
+                on_release:
+                    app.client.send("SEARCH", "Server", search_text.text)
             Button:
                 text: "Go Back"
                 on_release: 
+                    root.clear_results()
                     app.root.current = "main"
                     root.manager.transition.direction = "right"
 

@@ -12,7 +12,7 @@ SERVER = ''
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["CTS","STC", "CURRENT_SONG","CTC", "INIT","RECV","BROADCAST","SESSION_ID", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS"]
+HEADERS = ["CTS","STC", "CURRENT_SONG","CTC", "INIT","RECV","BROADCAST","SESSION_ID", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS","SEARCH_RESULTS"]
 
 class Server:
     def __init__(self):
@@ -89,6 +89,16 @@ class Server:
                 elif message["HEADER"] == "PLAY":
                     player = self.get_session_player(self.get_session_from_user(message["ID"]))
                     player.toggle_playback()
+
+                elif message["HEADER"] == "SEARCH":
+                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                    song = message["MESSAGE"]
+                    self.send("SEARCH_RESULTS", message["ID"], json.dumps(player.search(song)))
+
+                elif message["HEADER"] == "ADD_TO_QUEUE":
+                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                    uri = message["MESSAGE"]
+                    player.add_to_queue(uri)
 
                 elif message["HEADER"] == "GET_USERS":
                     session_id = self.get_session_from_user(message["ID"])
