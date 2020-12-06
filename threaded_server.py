@@ -446,9 +446,6 @@ class Server:
                 prev_threads = self.get_num_connections()
                 for thread in threading.enumerate():
                     print(thread.name)
-            else:
-                sleep(5)
-                self.print_sessions()
 
     def start(self):
         self.server.listen()
