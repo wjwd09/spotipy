@@ -8,6 +8,7 @@ from kivy.uix.widget import Widget
 from kivy.properties import ObjectProperty
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen, RiseInTransition
+from kivy.uix.dropdown import DropDown
 from threaded_client import Client
 from kivy.logger import Logger
 from kivy.properties import StringProperty
@@ -39,28 +40,30 @@ class SearchWindow(Screen):
 class UsersWindow(Screen):
     grid_l = ObjectProperty(None)
     top_lbl = ObjectProperty(None)
-    results = []
-    def search_btn_pressed(self):
+    results = {}
+    def show_users(self, host):
         grid = self.grid_l
         grid.bind(minimum_height=grid.setter('height'),
                      minimum_width=grid.setter('width'))
 
-        for i in self.results:
+        for i in self.results.keys():
+            Logger.info("{}".format(self.results[i]["display_name"]))
+            dropdown = DropDown()
+            for permission in self.results[i]["permissions"].keys():
+                #Logger.info("{}".format(permission))
+                btn = Button(size_hint = (1,None))
+                btn.text = f"{permission}:{self.results[i]['permissions'][permission]}"
+                #btn.bind(on_release= lambda permission: App.get_running_app().client.change_permission(i,permission))
+                dropdown.add_widget(btn)
 
-                btn1 = Button(size_hint=(1, None))
-                btn1.text = i
-                btn1.bind(on_release=partial(self.btn1_pressed, i))
+            btn1 = Button(size_hint=(1, None))
+            btn1.text = self.results[i]["display_name"]
+            btn1.bind(on_release=dropdown.open)
+            btn1.disabled = not host
+            grid.add_widget(btn1)
+                
 
-                grid.add_widget(btn1)
-
-    def btn1_pressed(self, result, *args):
-        new_text = result
-        self.top_lbl.text = new_text
-
-    def btn2_pressed(self, *args):
-        self.grid_l.clear_widgets()
-        #pass
-
+                
 
 
 
@@ -74,11 +77,12 @@ class MyMainApp(App):
     def build(self):
         self.queue = Queue.Queue()
         self.client = Client(self.queue)
+        self.host = False
         self.kv = kv
         return kv
 
     def print_something(self, command):
-        Logger.info("command = {}".format(command))
+        Logger.info("{}".format(command))
 
     def start_clock(self):
         Clock.schedule_interval(lambda dt: self.periodic_update(),1)
@@ -98,14 +102,17 @@ class MyMainApp(App):
                 elif msg["HEADER"] == "USERS":
                     users = json.loads(msg["MESSAGE"])
                     self.print_something(users)
-                    kv.get_screen("users").results = list(users)
+                    kv.get_screen("users").results = users
                     kv.get_screen("users").grid_l.clear_widgets()
-                    kv.get_screen("users").search_btn_pressed()
+                    kv.get_screen("users").show_users(self.host)
                 elif msg["MESSAGE"] == "PLEASE START SPOTIFY":
                     kv.get_screen("main").ids.current_song_text.text = "Please Start SPOTIFY"
 
+                return True
             except:
-                pass
+                return True
+        
+        return True
     
 
     

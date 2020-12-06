@@ -93,10 +93,12 @@ class Server:
                 elif message["HEADER"] == "GET_USERS":
                     session_id = self.get_session_from_user(message["ID"])
                     users = self.sessions[session_id]["USERS"]
-                    user_names = []
-                    for key in users.keys():
-                        user_names.append(users[key]["display_name"])
-                    self.send("USERS", message["ID"], json.dumps(user_names))
+                    self.send("USERS", message["ID"], json.dumps(users))
+
+                elif message["HEADER"] == "SET_PERMISSION":
+                    msg = json.loads(message["MESSAGE"])
+                    session_id = self.get_session_from_user(message["ID"])
+                    self.change_user_permissions(session_id, msg["client_id"], msg["permission"])
 
                 elif message["HEADER"] == "JOIN":
                     msg = json.loads(message["MESSAGE"])
@@ -361,6 +363,13 @@ class Server:
             }
         }
 
+    def change_user_permissions(self, session_id, client_id, permission):
+        permission_value = self.sessions[session_id][client_id]["permissions"][permission]
+        if permission_value == True:
+            self.sessions[session_id][client_id]["permissions"][permission] = False
+        elif permission_value == False:
+            self.sessions[session_id][client_id]["permissions"][permission] = True
+
     def create_session(self,session_id,host_id,host_name,spotify_token):
         """
         creates a session and fills the host entry
@@ -437,6 +446,9 @@ class Server:
                 prev_threads = self.get_num_connections()
                 for thread in threading.enumerate():
                     print(thread.name)
+            else:
+                sleep(5)
+                self.print_sessions()
 
     def start(self):
         self.server.listen()
