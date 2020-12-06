@@ -54,8 +54,8 @@ class spotifyServer:
 
     # Spotify Functions
 
-    def add_to_queue(self, song):
-        self.sp.add_to_queue(song)
+    def add_to_queue(self, uri):
+        self.sp.add_to_queue(uri)
 
     def previous_track(self):
         self.sp.previous_track()
@@ -67,8 +67,21 @@ class spotifyServer:
         time.sleep(1)
         print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
 
-    
+    def search(self, song):
+        results = self.sp.search(q=song, limit=10, offset=0, type='track')
+        if results:
+            refResults = {}
+            for entry in results['tracks']['items']:
+                refResults[entry['name']] = {
+                    'artist':   entry['artists'][0]['name'],
+                    'uri'   :   entry['uri']  
+                }
+            return refResults
+        else:
+            return None
 
+    def play_track(self, uriList):
+        self.sp.start_playback(uris=uriList)
 '''
 #These lines are for testing, will need to get access token from running spotifyClient.py and input here
 token = input("Enter access token:\n")
@@ -84,4 +97,12 @@ while True:
             server.previous_track()
         elif cmd == "4":
             break
+        elif cmd == "5":
+            song = input("Enter track to search\n")
+            print(server.search(song))
+        elif cmd == "6":
+            uri = [1]
+            uri[0] = input("Enter song uri to play\n")
+            server.play_track(uri)
+
 '''
