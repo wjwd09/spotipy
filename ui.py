@@ -63,7 +63,12 @@ class UsersWindow(Screen):
             grid.add_widget(btn1)
                 
 
+<<<<<<< HEAD
                 
+=======
+    def on_pre_enter(self):
+        self.search_btn_pressed()
+>>>>>>> parent of 0cfee30 (fixed users showing up multiple times)
 
 
 
@@ -89,7 +94,6 @@ class MyMainApp(App):
 
     def periodic_update(self):
         self.client.send("GET_CURRENT_SONG", "Server", "CURRENT_SONG")
-        self.client.send("GET_USERS", "Server", "GET_USERS")
 
         while self.queue.qsize():
             try:
@@ -102,9 +106,14 @@ class MyMainApp(App):
                 elif msg["HEADER"] == "USERS":
                     users = json.loads(msg["MESSAGE"])
                     self.print_something(users)
+<<<<<<< HEAD
                     kv.get_screen("users").results = users
                     kv.get_screen("users").grid_l.clear_widgets()
                     kv.get_screen("users").show_users(self.host)
+=======
+                    kv.get_screen("users").results = list(users)
+                    kv.get_screen("users").search_btn_pressed()
+>>>>>>> parent of 0cfee30 (fixed users showing up multiple times)
                 elif msg["MESSAGE"] == "PLEASE START SPOTIFY":
                     kv.get_screen("main").ids.current_song_text.text = "Please Start SPOTIFY"
 
