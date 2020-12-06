@@ -34,7 +34,28 @@ class JoinWindow(Screen):
     pass
 
 class SearchWindow(Screen):
-    pass
+    widg_id = ObjectProperty(None)
+    results = {}
+    def search_pressed(self):
+        widg = self.widg_id
+        self.clear_results()
+        #grid.bind(minimum_height=grid.setter('height'),
+        #             minimum_width=grid.setter('width'))
+
+        for track in self.results.keys():
+            btn1 = Button(size_hint_y=None)
+            btn1.text = track + " - " + self.results[track]['artist']
+            btn1.bind(on_release=partial(self.song_pressed, self.results[track]['uri']))
+
+            widg.add_widget(btn1)
+
+    def song_pressed(self, uri, *args):
+        App.get_running_app().client.send("ADD_TO_QUEUE", "Server", uri)
+
+    def clear_results(self):
+        self.widg_id.clear_widgets()
+        
+    # pass
 
 class UsersWindow(Screen):
     grid_l = ObjectProperty(None)
@@ -103,6 +124,10 @@ class MyMainApp(App):
                     kv.get_screen("users").search_btn_pressed()
                 elif msg["MESSAGE"] == "PLEASE START SPOTIFY":
                     kv.get_screen("main").ids.current_song_text.text = "Please Start SPOTIFY"
+                elif msg["HEADER"] == "SEARCH_RESULTS":
+                    kv.get_screen("search").results = json.loads(msg["MESSAGE"])
+                    kv.get_screen("search").search_pressed()
+
 
             except:
                 pass
