@@ -2,6 +2,7 @@ import socket
 import json
 import uuid
 import threading
+import ctypes
 from time import sleep
 from spotifyClient import spotifyClient
 
@@ -98,23 +99,16 @@ class Client:
                 print("Client closed")
                 return
 
-    def set_permissions(self, user_id):
-        permissions = {}
-        permissions["add_to_queue"] = input("Should this user be allowed to add to the queue?[T/F] ")
-        permissions["remove_from_queue"] = input("Should this user be allowed to remove from the queue?[T/F] ")
-        permissions["pause"] = input("Should this user be allowed to pause playback?[T/F] ")
-        permissions["play"] = input("Should this user be allowed to play?[T/F] ")
-        permissions["skip"] = input("Should this user be allowed to skip?[T/F] ")
-        for key in permissions.keys():
-            print(permissions[key])
-            if permissions[key] == 'T' or permissions[key] == 't':
-                permissions[key] = True
-            else:
-                permissions[key] = False
-            print(permissions[key])
-        permissions = json.dumps(permissions)
+    def set_permissions(self, user_id, permissions):
         return_permissions = {"client_id" : user_id, "permissions" : permissions}
-        return json.dumps(return_permissions)
+        p = json.dumps(return_permissions)
+        self.send("SET_PERMISSIONS", "Server", p)
+
+    def change_permission(self, user_id, permission):
+        msg = {}
+        msg["client_id"] = user_id
+        msg["permission"] = permission
+        self.send("SET_PERMISSION", "Server", json.dumps(msg))
 
     def close_client(self):
         self.client.close()

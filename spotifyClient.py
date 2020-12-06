@@ -56,5 +56,4 @@ client = spotifyClient(clientID=CLIENT_ID, redirect_uri=REDIRECT_URI, scope=SCOP
 client.authSetup() #Creates auth flow object, redirects user and grabs auth code, and finally grabs access token
 
 print(client.getAccToken()) #Prints access token json, only need "access_token" for now
-
 '''
