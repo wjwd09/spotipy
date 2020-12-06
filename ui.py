@@ -84,17 +84,8 @@ class UsersWindow(Screen):
             grid.add_widget(btn1)
                 
 
-<<<<<<< HEAD
-                
-=======
-<<<<<<< HEAD
-                
-=======
     def on_pre_enter(self):
         self.search_btn_pressed()
->>>>>>> parent of 0cfee30 (fixed users showing up multiple times)
->>>>>>> 7f0ab5d73b2f7ad3abb6c8d5668edf666b81791a
-
 
 
 class WindowManager(ScreenManager):
@@ -131,17 +122,11 @@ class MyMainApp(App):
                 elif msg["HEADER"] == "USERS":
                     users = json.loads(msg["MESSAGE"])
                     self.print_something(users)
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
                     kv.get_screen("users").results = users
                     kv.get_screen("users").grid_l.clear_widgets()
                     kv.get_screen("users").show_users(self.host)
-=======
->>>>>>> 7f0ab5d73b2f7ad3abb6c8d5668edf666b81791a
                     kv.get_screen("users").results = list(users)
                     kv.get_screen("users").search_btn_pressed()
->>>>>>> parent of 0cfee30 (fixed users showing up multiple times)
                 elif msg["MESSAGE"] == "PLEASE START SPOTIFY":
                     kv.get_screen("main").ids.current_song_text.text = "Please Start SPOTIFY"
                 elif msg["HEADER"] == "SEARCH_RESULTS":
