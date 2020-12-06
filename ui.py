@@ -84,8 +84,11 @@ class UsersWindow(Screen):
             grid.add_widget(btn1)
                 
 
+<<<<<<< HEAD
     def on_pre_enter(self):
         self.search_btn_pressed()
+=======
+>>>>>>> 5a0da5c68f44e2d729412db56cd6c11bb2a25f1b
 
 
 class WindowManager(ScreenManager):
@@ -122,9 +125,17 @@ class MyMainApp(App):
                 elif msg["HEADER"] == "USERS":
                     users = json.loads(msg["MESSAGE"])
                     self.print_something(users)
+<<<<<<< HEAD
                     kv.get_screen("users").results = users
                     kv.get_screen("users").grid_l.clear_widgets()
                     kv.get_screen("users").show_users(self.host)
+=======
+
+                    kv.get_screen("users").results = users
+                    kv.get_screen("users").grid_l.clear_widgets()
+                    kv.get_screen("users").show_users(self.host)
+
+>>>>>>> 5a0da5c68f44e2d729412db56cd6c11bb2a25f1b
                     kv.get_screen("users").results = list(users)
                     kv.get_screen("users").search_btn_pressed()
                 elif msg["MESSAGE"] == "PLEASE START SPOTIFY":
