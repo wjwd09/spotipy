@@ -12,7 +12,7 @@ SERVER = ''
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["CTS","STC", "CURRENT_SONG","CTC", "INIT","RECV","BROADCAST","SESSION_ID", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS","SEARCH_RESULTS","PERMISSION_UPDATE"]
+HEADERS = ["STC", "CURRENT_SONG","BROADCAST","SESSION_ID", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS","SEARCH_RESULTS","PERMISSION_UPDATE"]
 
 class Server:
     def __init__(self):
@@ -150,11 +150,13 @@ class Server:
                     self.broadcast_to_session(session_id,"BROADCAST_S", message["MESSAGE"])
                 elif message["HEADER"] == "BROADCAST":
                     self.broadcast_to_all("BROADCAST", message["MESSAGE"])
+
                 elif message["HEADER"] == "PLAYBACK":
                     session_id = self.connections[message["ID"]]["session_id"]
                     sp = self.sessions[session_id]["HOST"]["spotify_player"]
                     if not sp.toggle_playback():
                         self.broadcast_to_session(self.get_session_from_user(client_id), "FAILURE", "Please Start Spotify")
+
                 elif message["HEADER"] == "SEARCH":
                     session_id = self.get_session_from_user(message["ID"])
                     sp = self.get_session_player(session_id)
@@ -162,9 +164,6 @@ class Server:
                 else:
                     print(f"[{addr}] {message['MESSAGE']}")
                     #self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
-                    for i in range(10):
-                        sleep(5)
-                        conn.send(message["MESSAGE"].encode(FORMAT))
 
         print("Thread Closing")
 
