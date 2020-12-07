@@ -136,10 +136,24 @@ class MyMainApp(App):
                     kv.get_screen("main").ids.current_song_text.text = song_data["name"]
                 elif msg["HEADER"] == "USERS":
                     users = json.loads(msg["MESSAGE"])
+
                     #self.print_something(users)
+
+                    self.print_something(users)
+
                     kv.get_screen("users").results = users
                     kv.get_screen("users").grid_l.clear_widgets()
                     kv.get_screen("users").show_users(self.host)
+
+
+
+                    kv.get_screen("users").results = users
+                    kv.get_screen("users").grid_l.clear_widgets()
+                    kv.get_screen("users").show_users(self.host)
+
+
+                    kv.get_screen("users").results = list(users)
+                    kv.get_screen("users").search_btn_pressed()
 
                 elif msg["MESSAGE"] == "PLEASE START SPOTIFY":
                     kv.get_screen("main").ids.current_song_text.text = "Please Start SPOTIFY"
