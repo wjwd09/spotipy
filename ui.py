@@ -74,7 +74,7 @@ class UsersWindow(Screen):
                 #Logger.info("{}".format(permission))
                 btn = Button(size_hint = (1,None))
                 btn.text = f"{permission}:{self.results[i]['permissions'][permission]}"
-                #btn.bind(on_release= lambda permission: App.get_running_app().client.change_permission(i,permission))
+                btn.bind(on_release= partial(self.user_pressed, i, permission, btn))
                 dropdown.add_widget(btn)
 
             btn1 = Button(size_hint=(1, None))
@@ -82,6 +82,16 @@ class UsersWindow(Screen):
             btn1.bind(on_release=dropdown.open)
             btn1.disabled = not host
             grid.add_widget(btn1)
+
+    def user_pressed(self, user_id, permission,btn, *args):
+        App.get_running_app().client.change_permission(user_id,permission)
+        if btn.text == f"{permission}:False":
+            btn.text = f"{permission}:True"
+        else:
+            btn.text = f"{permission}:False"
+
+    def clear_results(self):
+        self.grid_l.clear_widgets()
                 
 
 
@@ -104,14 +114,21 @@ class MyMainApp(App):
         Logger.info("{}".format(command))
 
     def start_clock(self):
-        Clock.schedule_interval(lambda dt: self.periodic_update(),1)
+        Clock.schedule_interval(lambda dt: self.periodic_update(),0.5)
+        Clock.schedule_interval(lambda dt: self.ask_song(),5)
+
+    def ask_song(self):
+        self.client.send("GET_CURRENT_SONG", "Server", "CURRENT_SONG")
+
 
     def periodic_update(self):
-        self.client.send("GET_CURRENT_SONG", "Server", "CURRENT_SONG")
+        
 
         while self.queue.qsize():
             try:
                 msg = self.queue.get()
+                #self.print_something(msg)
+                
                 if msg["HEADER"] == "SESSION_ID":
                     kv.get_screen("main").ids.session_id_text.text = msg["MESSAGE"]
                 elif msg["HEADER"] == "CURRENT_SONG":
@@ -119,25 +136,37 @@ class MyMainApp(App):
                     kv.get_screen("main").ids.current_song_text.text = song_data["name"]
                 elif msg["HEADER"] == "USERS":
                     users = json.loads(msg["MESSAGE"])
-                    self.print_something(users)
-
+                    #self.print_something(users)
                     kv.get_screen("users").results = users
                     kv.get_screen("users").grid_l.clear_widgets()
                     kv.get_screen("users").show_users(self.host)
 
-                    kv.get_screen("users").results = list(users)
-                    kv.get_screen("users").search_btn_pressed()
                 elif msg["MESSAGE"] == "PLEASE START SPOTIFY":
                     kv.get_screen("main").ids.current_song_text.text = "Please Start SPOTIFY"
+
                 elif msg["HEADER"] == "SEARCH_RESULTS":
                     kv.get_screen("search").results = json.loads(msg["MESSAGE"])
                     kv.get_screen("search").search_pressed()
 
+                elif msg["HEADER"] == "PERMISSION_UPDATE":
+                    message = json.loads(msg["MESSAGE"])
+                    self.print_something(message)
+                    if message["permission"] == "playback":
+                        kv.get_screen("main").ids.playback.disabled = not message["value"]
+                    elif message["permission"] == "skip":
+                        kv.get_screen("main").ids.skip_forward.disabled = not message["value"]
+                        kv.get_screen("main").ids.skip_back.disabled = not message["value"]
+                    elif message["permission"] == "add_to_queue":
+                        kv.get_screen("main").ids.search_btn.disabled = not message["value"]
+
+                elif msg["HEADER"] == "FAILURE":
+                    self.print_something(msg["MESSAGE"])
 
                 return True
             except:
                 return True
-        
+
+        self.queue.queue.clear()
         return True
     
 

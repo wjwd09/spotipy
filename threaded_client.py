@@ -24,7 +24,7 @@ LOCAL_ADDR = (LOCAL_SERVER,PORT)
 
 PUBLIC_ADDR = (PUBLIC_SERVER,PORT)
 
-HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSIONS", "PLAYBACK", "SEARCH", "ADD_TO_QUEUE", "GET_CURRENT_SONG","PLAY","REWIND","SKIP","GET_USERS"]
+HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSION", "PLAYBACK", "SEARCH", "ADD_TO_QUEUE", "GET_CURRENT_SONG","PLAY","REWIND","SKIP","GET_USERS"]
 
 class Client:
     def __init__(self, queue = None):
@@ -44,7 +44,7 @@ class Client:
 
     def connect_to_server(self):
         try:
-            self.client.connect(PUBLIC_ADDR)
+            self.client.connect(LOCAL_ADDR)
         except:
             self.local = True
 

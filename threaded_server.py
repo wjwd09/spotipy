@@ -12,7 +12,7 @@ SERVER = ''
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["CTS","STC", "CURRENT_SONG","CTC", "INIT","RECV","BROADCAST","SESSION_ID", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS","SEARCH_RESULTS"]
+HEADERS = ["CTS","STC", "CURRENT_SONG","CTC", "INIT","RECV","BROADCAST","SESSION_ID", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS","SEARCH_RESULTS","PERMISSION_UPDATE"]
 
 class Server:
     def __init__(self):
@@ -87,8 +87,13 @@ class Server:
                     player.previous_track()
 
                 elif message["HEADER"] == "PLAY":
-                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
-                    player.toggle_playback()
+                    session_id = self.get_session_from_user(message["ID"])
+                    playable = self.sessions[session_id]["USERS"][message["ID"]]["permissions"]["playback"]
+                    if playable:
+                        player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                        player.toggle_playback()
+                    else:
+                        self.send("FAILURE", message["ID"], "You are not allowed to Play/Pause")
 
                 elif message["HEADER"] == "SEARCH":
                     player = self.get_session_player(self.get_session_from_user(message["ID"]))
@@ -109,6 +114,10 @@ class Server:
                     msg = json.loads(message["MESSAGE"])
                     session_id = self.get_session_from_user(message["ID"])
                     self.change_user_permissions(session_id, msg["client_id"], msg["permission"])
+                    new_permissions = {}
+                    new_permissions["permission"] = msg["permission"]
+                    new_permissions["value"] = self.sessions[session_id]["USERS"][msg["client_id"]]["permissions"][msg["permission"]]
+                    self.send("PERMISSION_UPDATE",msg["client_id"], json.dumps(new_permissions))
 
                 elif message["HEADER"] == "JOIN":
                     msg = json.loads(message["MESSAGE"])
@@ -367,18 +376,17 @@ class Server:
             "permissions"   : {
                 "add_to_queue"      : True,
                 "remove_from_queue" : True,
-                "pause"             : True,
-                "play"              : True,
+                "playback"             : True,
                 "skip"              : True
             }
         }
 
     def change_user_permissions(self, session_id, client_id, permission):
-        permission_value = self.sessions[session_id][client_id]["permissions"][permission]
+        permission_value = self.sessions[session_id]["USERS"][client_id]["permissions"][permission]
         if permission_value == True:
-            self.sessions[session_id][client_id]["permissions"][permission] = False
+            self.sessions[session_id]["USERS"][client_id]["permissions"][permission] = False
         elif permission_value == False:
-            self.sessions[session_id][client_id]["permissions"][permission] = True
+            self.sessions[session_id]["USERS"][client_id]["permissions"][permission] = True
 
     def create_session(self,session_id,host_id,host_name,spotify_token):
         """
