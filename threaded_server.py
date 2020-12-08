@@ -160,10 +160,6 @@ class Server:
                         if not sp.toggle_playback():
                             self.broadcast_to_session(self.get_session_from_user(client_id), "FAILURE", "Please Start Spotify")
 
-                    elif message["HEADER"] == "SEARCH":
-                        session_id = self.get_session_from_user(message["ID"])
-                        sp = self.get_session_player(session_id)
-                        sp.search(message["MESSAGE"])
                     else:
                         print(f"[{addr}] {message['MESSAGE']}")
                         #self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
