@@ -90,7 +90,10 @@ class Client:
                     message = json.loads(raw_msg)
                     self.queue.put(message)
                         
-                except:
+                except ValueError as ex:
+                    print(str(ex))
+
+                except Exception as ex:
                     print(f"[SERVER NOT RESPONDING] closing client")
                     self.close_client()
                     break
