@@ -96,7 +96,9 @@ class Server:
                     elif message["HEADER"] == "SEARCH":
                         player = self.get_session_player(self.get_session_from_user(message["ID"]))
                         song = message["MESSAGE"]
+                        print(song)
                         self.send("SEARCH_RESULTS", message["ID"], json.dumps(player.search(song)))
+                        print(player.search(song))
 
                     elif message["HEADER"] == "ADD_TO_QUEUE":
                         player = self.get_session_player(self.get_session_from_user(message["ID"]))
