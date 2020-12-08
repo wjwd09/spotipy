@@ -65,6 +65,8 @@ class Server:
                     self.create_spotify_player(session_id)
                     if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
                         self.send("STC", client_id, "PLEASE START SPOTIFY")
+                    
+                    sleep(2)
                     self.send("SESSION_ID", client_id,  str(session_id))
 
                 elif message["HEADER"] == "GET_CURRENT_SONG":
