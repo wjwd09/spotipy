@@ -12,7 +12,7 @@ SERVER = ''
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["STC", "CURRENT_SONG","BROADCAST","SESSION_ID", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS","SEARCH_RESULTS","PERMISSION_UPDATE"]
+HEADERS = ["STC", "CURRENT_SONG","BROADCAST","SESSION_ID","SESSION_INFO", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS","SEARCH_RESULTS","PERMISSION_UPDATE"]
 
 class Server:
     def __init__(self):
@@ -66,7 +66,6 @@ class Server:
                     if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
                         self.send("STC", client_id, "PLEASE START SPOTIFY")
                     
-                    sleep(2)
                     self.send("SESSION_ID", client_id,  str(session_id))
 
                 elif message["HEADER"] == "GET_CURRENT_SONG":
