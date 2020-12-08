@@ -84,7 +84,7 @@ WindowManager:
                     app.root.current = "start"
                     root.manager.transition.direction = "right"
             Button:
-                text: "join"
+                text: "Join"
                 on_release:
                     app.client.set_name(join_username.text)
                     app.client.connect_to_server()

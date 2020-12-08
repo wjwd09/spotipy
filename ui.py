@@ -132,7 +132,7 @@ class MyMainApp(App):
                 if msg["HEADER"] == "SESSION_ID":
                     message = json.loads(msg["MESSAGE"])
                     kv.get_screen("main").ids.session_id_text.text = message["session_id"]
-                    kb.get_screen("users").ids.lblID.text = message["host"] + "'s session"
+                    kv.get_screen("users").ids.lblID.text = message["host"] + "'s session"
                 elif msg["HEADER"] == "CURRENT_SONG":
                     song_data = json.loads(msg["MESSAGE"])
                     kv.get_screen("main").ids.current_song_text.text = song_data["name"]
