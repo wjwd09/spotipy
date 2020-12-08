@@ -90,8 +90,8 @@ class Client:
                     message = json.loads(raw_msg)
                     self.queue.put(message)
                         
-                except:
-                    pass
+                except Exception as ex:
+                    self.queue.put(str(ex))
 
                 
 

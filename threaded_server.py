@@ -35,137 +35,140 @@ class Server:
         connected = True
         while connected:
             try:
-                msg_length = conn.recv(PREFIX).decode(FORMAT)
-            except:
-                print(f"[{addr}] DISCONNECTED")
-                self.handle_unexpected_disconnect(client_id,conn)
-                return
-
-            if msg_length:
-                msg_length = int(msg_length)
                 try:
-                    raw_msg = conn.recv(msg_length).decode(FORMAT)
+                    msg_length = conn.recv(PREFIX).decode(FORMAT)
                 except:
                     print(f"[{addr}] DISCONNECTED")
                     self.handle_unexpected_disconnect(client_id,conn)
                     return
-                message = json.loads(raw_msg)
 
-                if message["HEADER"] == DISCONNECT_MESSAGE:
-                    connected = False
-                    self.handle_disconnect(message,conn)
+                if msg_length:
+                    msg_length = int(msg_length)
+                    try:
+                        raw_msg = conn.recv(msg_length).decode(FORMAT)
+                    except:
+                        print(f"[{addr}] DISCONNECTED")
+                        self.handle_unexpected_disconnect(client_id,conn)
+                        return
+                    message = json.loads(raw_msg)
 
-                elif message["HEADER"] == "CREATE":
-                    session_id = "".join(random.choices(string.ascii_uppercase + string.digits, k = 4))
-                    indentifer = json.loads(message["MESSAGE"])
-                    tokenDict = json.loads(indentifer["spotify_token"])
-                    client_id = message["ID"]
-                    self.create_session(session_id, message["ID"], indentifer["display_name"], tokenDict)
-                    self.add_connection_entry(message["ID"], indentifer["display_name"], session_id, True, conn, addr)
-                    self.create_spotify_player(session_id)
-                    if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
-                        self.send("STC", client_id, "PLEASE START SPOTIFY")
-                    
-                    self.send("SESSION_ID", client_id,  str(session_id))
+                    if message["HEADER"] == DISCONNECT_MESSAGE:
+                        connected = False
+                        self.handle_disconnect(message,conn)
 
-                elif message["HEADER"] == "GET_CURRENT_SONG":
-                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
-                    if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
-                        self.send("STC", client_id, "PLEASE START SPOTIFY")
-                    else:
-                        current_track = {}
-                        current_track["name"] = player.sp.currently_playing()['item']['name']
-                        current_track["artist"] = player.sp.currently_playing()['item']['album']['artists'][0]['name']
-                        track_json = json.dumps(current_track)
-                        self.send("CURRENT_SONG", message["ID"],track_json)
-
-                elif message["HEADER"] == "SKIP":
-                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
-                    player.next_track()
-
-                elif message["HEADER"] == "REWIND":
-                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
-                    player.previous_track()
-
-                elif message["HEADER"] == "PLAY":
-                    session_id = self.get_session_from_user(message["ID"])
-                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
-                    player.toggle_playback()
-
-                elif message["HEADER"] == "SEARCH":
-                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
-                    song = message["MESSAGE"]
-                    self.send("SEARCH_RESULTS", message["ID"], json.dumps(player.search(song)))
-
-                elif message["HEADER"] == "ADD_TO_QUEUE":
-                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
-                    uri = message["MESSAGE"]
-                    player.add_to_queue(uri)
-
-                elif message["HEADER"] == "GET_USERS":
-                    session_id = self.get_session_from_user(message["ID"])
-                    users = self.sessions[session_id]["USERS"]
-                    self.send("USERS", message["ID"], json.dumps(users))
-
-                elif message["HEADER"] == "SET_PERMISSION":
-                    msg = json.loads(message["MESSAGE"])
-                    session_id = self.get_session_from_user(message["ID"])
-                    self.change_user_permissions(session_id, msg["client_id"], msg["permission"])
-                    new_permissions = {}
-                    new_permissions["permission"] = msg["permission"]
-                    new_permissions["value"] = self.sessions[session_id]["USERS"][msg["client_id"]]["permissions"][msg["permission"]]
-                    self.send("PERMISSION_UPDATE",msg["client_id"], json.dumps(new_permissions))
-
-                elif message["HEADER"] == "JOIN":
-                    msg = json.loads(message["MESSAGE"])
-                    session_id = msg["session_id"]
-                    if session_id in self.sessions.keys():
-                        self.add_user_to_session(session_id,message["ID"],msg["display_name"])
-                        self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
+                    elif message["HEADER"] == "CREATE":
+                        session_id = "".join(random.choices(string.ascii_uppercase + string.digits, k = 4))
+                        indentifer = json.loads(message["MESSAGE"])
+                        tokenDict = json.loads(indentifer["spotify_token"])
                         client_id = message["ID"]
-                        self.broadcast_to_session(session_id, "BROADCAST_S", f"[NEW USER HAS JOINED YOUR SESSION] Welcome! {msg['display_name']}", exclude=[client_id])
+                        self.create_session(session_id, message["ID"], indentifer["display_name"], tokenDict)
+                        self.add_connection_entry(message["ID"], indentifer["display_name"], session_id, True, conn, addr)
+                        self.create_spotify_player(session_id)
+                        if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
+                            self.send("STC", client_id, "PLEASE START SPOTIFY")
                         
-                        session_info = {}
-                        session_info["session_id"] = session_id
-                        session_info["host"] = self.sessions[session_id]["HOST"]["NAME"]
-                        
-                        self.send("SESSION_INFO", message["ID"], json.dumps(session_info))
-                        host = self.sessions[session_id]["HOST"]["ID"]
-                        self.send("USER_JOINED", host, client_id)
-                        self.send("USER_JOINED", client_id, f"Welcome to session {session_id}")
+                        self.send("SESSION_ID", client_id,  str(session_id))
+
+                    elif message["HEADER"] == "GET_CURRENT_SONG":
+                        player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                        if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
+                            self.send("STC", client_id, "PLEASE START SPOTIFY")
+                        else:
+                            current_track = {}
+                            current_track["name"] = player.sp.currently_playing()['item']['name']
+                            current_track["artist"] = player.sp.currently_playing()['item']['album']['artists'][0]['name']
+                            track_json = json.dumps(current_track)
+                            self.send("CURRENT_SONG", message["ID"],track_json)
+
+                    elif message["HEADER"] == "SKIP":
+                        player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                        player.next_track()
+
+                    elif message["HEADER"] == "REWIND":
+                        player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                        player.previous_track()
+
+                    elif message["HEADER"] == "PLAY":
+                        session_id = self.get_session_from_user(message["ID"])
+                        player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                        player.toggle_playback()
+
+                    elif message["HEADER"] == "SEARCH":
+                        player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                        song = message["MESSAGE"]
+                        self.send("SEARCH_RESULTS", message["ID"], json.dumps(player.search(song)))
+
+                    elif message["HEADER"] == "ADD_TO_QUEUE":
+                        player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                        uri = message["MESSAGE"]
+                        player.add_to_queue(uri)
+
+                    elif message["HEADER"] == "GET_USERS":
+                        session_id = self.get_session_from_user(message["ID"])
+                        users = self.sessions[session_id]["USERS"]
+                        self.send("USERS", message["ID"], json.dumps(users))
+
+                    elif message["HEADER"] == "SET_PERMISSION":
+                        msg = json.loads(message["MESSAGE"])
+                        session_id = self.get_session_from_user(message["ID"])
+                        self.change_user_permissions(session_id, msg["client_id"], msg["permission"])
+                        new_permissions = {}
+                        new_permissions["permission"] = msg["permission"]
+                        new_permissions["value"] = self.sessions[session_id]["USERS"][msg["client_id"]]["permissions"][msg["permission"]]
+                        self.send("PERMISSION_UPDATE",msg["client_id"], json.dumps(new_permissions))
+
+                    elif message["HEADER"] == "JOIN":
+                        msg = json.loads(message["MESSAGE"])
+                        session_id = msg["session_id"]
+                        if session_id in self.sessions.keys():
+                            self.add_user_to_session(session_id,message["ID"],msg["display_name"])
+                            self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
+                            client_id = message["ID"]
+                            self.broadcast_to_session(session_id, "BROADCAST_S", f"[NEW USER HAS JOINED YOUR SESSION] Welcome! {msg['display_name']}", exclude=[client_id])
+                            
+                            session_info = {}
+                            session_info["session_id"] = session_id
+                            session_info["host"] = self.sessions[session_id]["HOST"]["NAME"]
+                            
+                            self.send("SESSION_INFO", message["ID"], json.dumps(session_info))
+                            host = self.sessions[session_id]["HOST"]["ID"]
+                            self.send("USER_JOINED", host, client_id)
+                            self.send("USER_JOINED", client_id, f"Welcome to session {session_id}")
+                        else:
+                            self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
+                            self.send("FAILURE", message["ID"], "Session does not exist")
+                            self.send(DISCONNECT_MESSAGE,message["ID"],DISCONNECT_MESSAGE)
+                            self.delete_connection_entry(message["ID"])
+                            break
+                    elif message["HEADER"] == "SET_PERMISSIONS":
+                        msg = json.loads(message["MESSAGE"])
+                        user_id = msg["client_id"]
+                        permissions = json.loads(msg["permissions"])
+                        for key in permissions.keys():
+                            self.set_permissions(user_id,key,permissions[key])
+                        self.print_sessions()
+
+                    elif message["HEADER"] == "BROADCAST_S":
+                        session_id = self.connections[message["ID"]]["session_id"]
+                        self.broadcast_to_session(session_id,"BROADCAST_S", message["MESSAGE"])
+                    elif message["HEADER"] == "BROADCAST":
+                        self.broadcast_to_all("BROADCAST", message["MESSAGE"])
+
+                    elif message["HEADER"] == "PLAYBACK":
+                        session_id = self.connections[message["ID"]]["session_id"]
+                        sp = self.sessions[session_id]["HOST"]["spotify_player"]
+                        if not sp.toggle_playback():
+                            self.broadcast_to_session(self.get_session_from_user(client_id), "FAILURE", "Please Start Spotify")
+
+                    elif message["HEADER"] == "SEARCH":
+                        session_id = self.get_session_from_user(message["ID"])
+                        sp = self.get_session_player(session_id)
+                        sp.search(message["MESSAGE"])
                     else:
-                        self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
-                        self.send("FAILURE", message["ID"], "Session does not exist")
-                        self.send(DISCONNECT_MESSAGE,message["ID"],DISCONNECT_MESSAGE)
-                        self.delete_connection_entry(message["ID"])
-                        break
-                elif message["HEADER"] == "SET_PERMISSIONS":
-                    msg = json.loads(message["MESSAGE"])
-                    user_id = msg["client_id"]
-                    permissions = json.loads(msg["permissions"])
-                    for key in permissions.keys():
-                        self.set_permissions(user_id,key,permissions[key])
-                    self.print_sessions()
-
-                elif message["HEADER"] == "BROADCAST_S":
-                    session_id = self.connections[message["ID"]]["session_id"]
-                    self.broadcast_to_session(session_id,"BROADCAST_S", message["MESSAGE"])
-                elif message["HEADER"] == "BROADCAST":
-                    self.broadcast_to_all("BROADCAST", message["MESSAGE"])
-
-                elif message["HEADER"] == "PLAYBACK":
-                    session_id = self.connections[message["ID"]]["session_id"]
-                    sp = self.sessions[session_id]["HOST"]["spotify_player"]
-                    if not sp.toggle_playback():
-                        self.broadcast_to_session(self.get_session_from_user(client_id), "FAILURE", "Please Start Spotify")
-
-                elif message["HEADER"] == "SEARCH":
-                    session_id = self.get_session_from_user(message["ID"])
-                    sp = self.get_session_player(session_id)
-                    sp.search(message["MESSAGE"])
-                else:
-                    print(f"[{addr}] {message['MESSAGE']}")
-                    #self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
+                        print(f"[{addr}] {message['MESSAGE']}")
+                        #self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
+            except Exception as ex:
+                print(str(ex))
 
         print("Thread Closing")
 
