@@ -16,11 +16,12 @@ PREFIX = 64
 PORT = 5060
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-LOCAL_PC_IP = socket.gethostbyname(socket.gethostname())
 LOCAL_SERVER = "10.0.0.17"
-PUBLIC_SERVER = "68.84.71.235"
-LOCAL_ADDR = (LOCAL_SERVER,PORT)
+#LOCAL_SERVER = socket.gethostbyname(socket.gethostname())
+PUBLIC_SERVER = "127.0.0.1"
+#PUBLIC_SERVER = "68.84.71.235"
 
+LOCAL_ADDR = (LOCAL_SERVER,PORT)
 PUBLIC_ADDR = (PUBLIC_SERVER,PORT)
 
 HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSION", "PLAYBACK", "SEARCH", "ADD_TO_QUEUE", "GET_CURRENT_SONG","PLAY","REWIND","SKIP","GET_USERS"]
@@ -43,14 +44,14 @@ class Client:
         self.name = name
 
     def connect_to_server(self):
-        if LOCAL_SERVER[:6] ==  LOCAL_PC_IP[:6]:
+        try:
+            self.client.connect(PUBLIC_ADDR)
+        except:
+            self.local = True
+
+        if self.local:
             try:
                 self.client.connect(LOCAL_ADDR)
-            except:
-                self.local = True
-        else:
-            try:
-                self.client.connect(PUBLIC_ADDR)
             except Exception as ex:
                 print(str(ex))
                 return
