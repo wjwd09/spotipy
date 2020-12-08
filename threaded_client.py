@@ -89,6 +89,8 @@ class Client:
                     raw_msg = self.client.recv(msg_len).decode(FORMAT)
                     message = json.loads(raw_msg)
                     self.queue.put(message)
+                    if message["HEADER"] == DISCONNECT_MESSAGE:
+                        break
                         
                 except Exception as ex:
                     self.queue.put(str(ex))

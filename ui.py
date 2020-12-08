@@ -114,8 +114,8 @@ class MyMainApp(App):
         Logger.info("{}".format(command))
 
     def start_clock(self):
-        Clock.schedule_interval(lambda dt: self.periodic_update(),0.5)
-        Clock.schedule_interval(lambda dt: self.ask_song(),5)
+        self.update = Clock.schedule_interval(lambda dt: self.periodic_update(),0.5)
+        self.ask_for_song = Clock.schedule_interval(lambda dt: self.ask_song(),5)
 
     def ask_song(self):
         self.client.send("GET_CURRENT_SONG", "Server", "CURRENT_SONG")
@@ -167,6 +167,12 @@ class MyMainApp(App):
 
                 elif msg["HEADER"] == "FAILURE":
                     self.print_something(msg["MESSAGE"])
+
+                elif msg["HEADER"] == "!DISCONNECT":
+                    self.client.close_client()
+                    self.ask_for_song.cancel()
+                    self.update.cancel()
+                    self.client = Client(self.queue)
 
                 return True
             except:
