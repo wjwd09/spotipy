@@ -45,7 +45,7 @@ class Client:
 
     def connect_to_server(self):
         try:
-            self.client.connect(PUBLIC_ADDR)
+            self.client.connect(LOCAL_ADDR)
         except:
             self.local = True
 

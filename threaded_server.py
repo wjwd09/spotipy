@@ -88,12 +88,8 @@ class Server:
 
                 elif message["HEADER"] == "PLAY":
                     session_id = self.get_session_from_user(message["ID"])
-                    playable = self.sessions[session_id]["USERS"][message["ID"]]["permissions"]["playback"]
-                    if playable:
-                        player = self.get_session_player(self.get_session_from_user(message["ID"]))
-                        player.toggle_playback()
-                    else:
-                        self.send("FAILURE", message["ID"], "You are not allowed to Play/Pause")
+                    player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                    player.toggle_playback()
 
                 elif message["HEADER"] == "SEARCH":
                     player = self.get_session_player(self.get_session_from_user(message["ID"]))
@@ -127,7 +123,12 @@ class Server:
                         self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
                         client_id = message["ID"]
                         self.broadcast_to_session(session_id, "BROADCAST_S", f"[NEW USER HAS JOINED YOUR SESSION] Welcome! {msg['display_name']}", exclude=[client_id])
-                        self.send("SESSION_ID", message["ID"], session_id)
+                        
+                        session_info = {}
+                        session_info["session_id"] = session_id
+                        session_info["host"] = self.sessions[session_id]["HOST"]["NAME"]
+                        
+                        self.send("SESSION_ID", message["ID"], json.dumps(session_info))
                         host = self.sessions[session_id]["HOST"]["ID"]
                         self.send("USER_JOINED", host, client_id)
                         self.send("USER_JOINED", client_id, f"Welcome to session {session_id}")
