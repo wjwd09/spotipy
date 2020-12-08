@@ -127,9 +127,12 @@ class MyMainApp(App):
         while self.queue.qsize():
             try:
                 msg = self.queue.get()
-                #self.print_something(msg)
+                self.print_something(msg)
                 
                 if msg["HEADER"] == "SESSION_ID":
+                    kv.get_screen("main").ids.session_id_text.text = msg["MESSAGE"]
+
+                elif msg["HEADER"] == "SESSION_INFO":
                     message = json.loads(msg["MESSAGE"])
                     kv.get_screen("main").ids.session_id_text.text = message["session_id"]
                     kv.get_screen("users").ids.lblID.text = message["host"] + "'s session"

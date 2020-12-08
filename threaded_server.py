@@ -130,7 +130,7 @@ class Server:
                         session_info["session_id"] = session_id
                         session_info["host"] = self.sessions[session_id]["HOST"]["NAME"]
                         
-                        self.send("SESSION_ID", message["ID"], json.dumps(session_info))
+                        self.send("SESSION_INFO", message["ID"], json.dumps(session_info))
                         host = self.sessions[session_id]["HOST"]["ID"]
                         self.send("USER_JOINED", host, client_id)
                         self.send("USER_JOINED", client_id, f"Welcome to session {session_id}")
