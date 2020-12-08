@@ -68,7 +68,7 @@ class spotifyServer:
         print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
 
     def search(self, song):
-        results = self.sp.search(q=song, limit=30, offset=0, type='track')
+        results = self.sp.search(q=song, limit=10, offset=0, type='track')
         if results:
             refResults = {}
             for entry in results['tracks']['items']:
