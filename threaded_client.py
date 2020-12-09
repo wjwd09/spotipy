@@ -1,4 +1,5 @@
 import socket
+import requests
 import json
 import uuid
 import threading
@@ -18,14 +19,15 @@ FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
 LOCAL_SERVER = "10.0.0.17"
 #LOCAL_SERVER = socket.gethostbyname(socket.gethostname())
-PUBLIC_SERVER = "127.0.0.1"
-#PUBLIC_SERVER = "68.84.71.235"
+PUBLIC_SERVER = "68.84.71.235"
 
 LOCAL_ADDR = (LOCAL_SERVER,PORT)
 PUBLIC_ADDR = (PUBLIC_SERVER,PORT)
 
 HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSION", "PLAYBACK", "SEARCH", "ADD_TO_QUEUE", "GET_CURRENT_SONG","PLAY","REWIND","SKIP","GET_USERS"]
 
+def get_public_ip():
+    return str(requests.get('https://api.ipify.org').text)
 
 class Client:
     def __init__(self, queue = None):
@@ -45,17 +47,13 @@ class Client:
 
     def connect_to_server(self):
         try:
-            self.client.connect(LOCAL_ADDR)
-        except:
-            self.local = True
-
-        if self.local:
-            try:
+            if PUBLIC_SERVER == get_public_ip():
                 self.client.connect(LOCAL_ADDR)
-            except Exception as ex:
-                print(str(ex))
-                return
-        
+            else:
+                self.client.connect(PUBLIC_ADDR)
+        except Exception as ex:
+            print(str(ex))
+
         self.receiver = threading.Thread(target=self.recv_msg)
         self.receiver.start()
         self.connected = True

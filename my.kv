@@ -150,7 +150,7 @@ WindowManager:
                     app.root.current = "users"
                     root.manager.transition.direction = "left"
             Button:
-                text: "End Session"
+                text: "End/Leave Session"
                 on_release:
                     app.client.send("!DISCONNECT", "Server", "!DISCONNECT")
                     app.root.current = "start"
