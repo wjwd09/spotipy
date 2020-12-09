@@ -122,8 +122,6 @@ class MyMainApp(App):
 
 
     def periodic_update(self):
-        
-
         while self.queue.qsize():
             try:
                 msg = self.queue.get()

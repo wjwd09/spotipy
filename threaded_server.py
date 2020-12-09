@@ -126,16 +126,12 @@ class Server:
                             self.add_user_to_session(session_id,message["ID"],msg["display_name"])
                             self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
                             client_id = message["ID"]
-                            self.broadcast_to_session(session_id, "BROADCAST_S", f"[NEW USER HAS JOINED YOUR SESSION] Welcome! {msg['display_name']}", exclude=[client_id])
                             
                             session_info = {}
                             session_info["session_id"] = session_id
                             session_info["host"] = self.sessions[session_id]["HOST"]["NAME"]
                             
                             self.send("SESSION_INFO", message["ID"], json.dumps(session_info))
-                            host = self.sessions[session_id]["HOST"]["ID"]
-                            self.send("USER_JOINED", host, client_id)
-                            self.send("USER_JOINED", client_id, f"Welcome to session {session_id}")
                         else:
                             self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
                             self.send("FAILURE", message["ID"], "Session does not exist")
@@ -163,8 +159,8 @@ class Server:
                             self.broadcast_to_session(self.get_session_from_user(client_id), "FAILURE", "Please Start Spotify")
 
                     else:
-                        print(f"[{addr}] {message['MESSAGE']}")
-                        #self.send("RECV",client_id,f"[MESSAGE RECIEVED]{message['MESSAGE']}")
+                        conn.close()
+                        connected = False
             except Exception as ex:
                 print(str(ex))
 
