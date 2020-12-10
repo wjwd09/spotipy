@@ -159,11 +159,8 @@ class Server:
                             self.broadcast_to_session(self.get_session_from_user(client_id), "FAILURE", "Please Start Spotify")
 
                     else:
-                        conn.close()
-                        connected = False
+                        print(message["MESSAGE"])
             except Exception as ex:
-                conn.close()
-                connected = False
                 print(str(ex))
 
         print("Thread Closing")
