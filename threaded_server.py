@@ -373,7 +373,6 @@ class Server:
             "display_name"  :display_name,
             "permissions"   : {
                 "add_to_queue"      : True,
-                "remove_from_queue" : True,
                 "playback"             : True,
                 "skip"              : True
             }
