@@ -162,6 +162,8 @@ class Server:
                         conn.close()
                         connected = False
             except Exception as ex:
+                conn.close()
+                connected = False
                 print(str(ex))
 
         print("Thread Closing")
