@@ -4,6 +4,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import os
 import json
 import time
+import threading
 
 #track = "spotify:track:7GhIk7Il098yCjg4BQjzvb"
 
@@ -28,6 +29,29 @@ class spotifyServer:
             self.accToken = accToken
         self.sp = spotipy.Spotify(auth=self.accToken)
 
+    
+    def get_current_song(self):
+        if self.is_spotify_running():
+            song_data = {}
+            song_data["name"] = self.sp.currently_playing()["item"]["name"]
+            song_data["artist"] = self.sp.currently_playing()["item"]["album"][0]["name"]
+            return song_data
+        else:
+            return {}
+
+    def get_song_duration_ms(self):
+        if self.is_spotify_running():
+            duration = float(self.sp.currently_playing()["item"]["duration_ms"])
+            return duration
+        else:
+            return -1
+
+    def get_song_progress_ms(self):
+        if self.is_spotify_running():
+            return float(self.sp.current_playback()["progress_ms"])
+        else:
+            return -1
+
     def toggle_playback(self):
         '''
         Toggles the playback mode between playing and paused.
@@ -41,6 +65,9 @@ class spotifyServer:
             else:
                 self.sp.start_playback()
                 print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
+                print(self.get_song_duration_ms())
+                print(self.get_song_progress_ms())
+
             return True
         except:
             return False
@@ -60,12 +87,12 @@ class spotifyServer:
     def previous_track(self):
         self.sp.previous_track()
         time.sleep(1)
-        print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
+        #print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
 
     def next_track(self):
         self.sp.next_track()
         time.sleep(1)
-        print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
+        #print("Now playing: " + self.sp.currently_playing()['item']['name'] + " by " + self.sp.currently_playing()['item']['album']['artists'][0]['name'])
 
     def search(self, song):
         results = self.sp.search(q=song, limit=10, offset=0, type='track')

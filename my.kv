@@ -5,6 +5,7 @@ WindowManager:
     MainWindow:
     SearchWindow:
     UsersWindow:
+    QueueWindow:
 
 <StartWindow>:
     name: "start"
@@ -98,7 +99,7 @@ WindowManager:
 
     GridLayout:
         
-        rows:5
+        rows:6
 
         Label:
             id: session_id_text
@@ -110,6 +111,18 @@ WindowManager:
         Label:
             id: current_song_text
             text: root.current_song_text
+        GridLayout:
+            cols:3
+            Label:
+                id: song_progress_text
+                text: "0:00"
+            ProgressBar:
+                id: song_progress
+                
+                
+            Label:
+                id: song_duration_text
+                text: "0:00"
 
         GridLayout:
             cols:5
@@ -133,7 +146,7 @@ WindowManager:
                 text: ""
 
         GridLayout:
-            cols:3
+            cols:4
 
             
             Button:
@@ -141,6 +154,12 @@ WindowManager:
                 id:search_btn
                 on_release:
                     app.root.current = "search"
+                    root.manager.transition.direction = "left"
+            Button:
+                text: "Queue"
+                id: queue_btn
+                on_release:
+                    app.root.current = "queue"
                     root.manager.transition.direction = "left"
 
             Button:
@@ -151,6 +170,7 @@ WindowManager:
                     root.manager.transition.direction = "left"
             Button:
                 text: "End/Leave Session"
+                background_color: [1, 0, 0, 1]
                 on_release:
                     app.client.send("!DISCONNECT", "Server", "!DISCONNECT")
                     app.root.current = "start"
@@ -189,6 +209,41 @@ WindowManager:
                     root.clear_results()
                     app.root.current = "main"
                     root.manager.transition.direction = "right"
+
+<QueueWindow>
+    name: "queue"
+    scroll_view: scrollviewID
+    top_lbl: lblID
+    grid_l: gridlayoutID
+    AnchorLayout:
+        size_hint: 1, .1
+        pos_hint: {'x': 0, 'y': .9}
+        anchor_x: 'center'
+        anchor_y: 'center'
+        Label:
+            id: lblID
+            text: "queue"
+    Button:
+        size_hint: 1, .1   
+        pos_hint: {'x': 0, 'y': .8}
+        text: 'Go Back'
+        on_release: 
+            app.root.current = "main"
+            root.manager.transition.direction = "left"
+
+    ScrollView:
+        id: scrollviewID
+        orientation: 'vertical'
+        pos_hint: {'x': 0, 'y': 0}
+        size_hint: 1, .8
+        bar_width: '8dp'
+        GridLayout:
+            id: gridlayoutID
+            cols: 1
+            size_hint: 1, None
+            row_default_height: 40
+            row_force_default: False
+
 
 <UsersWindow>
     name: "users"

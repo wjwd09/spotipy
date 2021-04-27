@@ -4,16 +4,18 @@ import json
 import random, string
 from time import sleep
 from spotifyServer import *
+import queue
+import pickle
 
 PREFIX = 64
-PORT = 5060
+PORT = 25565
 SERVER = ''
 #SERVER = socket.gethostbyname(socket.gethostname())
 ADDR = (SERVER,PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-HEADERS = ["STC", "CURRENT_SONG","BROADCAST","SESSION_ID","SESSION_INFO", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS","SEARCH_RESULTS","PERMISSION_UPDATE"]
-
+HEADERS = ["STC", "CURRENT_SONG","BROADCAST","SESSION_ID","SESSION_INFO", "BROADCAST_S","FAILURE", DISCONNECT_MESSAGE,"USER_DISCONNECT","USER_JOINED","USER_DISCONNECT_UNEXPECTED", "SET_PERMISSIONS", "GET_CURRENT_SONG", "REWIND", "PLAY", "SKIP","USERS","SEARCH_RESULTS","PERMISSION_UPDATE","QUEUE_UPDATE"]
+FAILURE_MESSAGE = {"HEADER": "MESSAGE_FAILURE", "MESSAGE": "FAILURE"}
 class Server:
     def __init__(self):
         self.server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -43,14 +45,17 @@ class Server:
                     return
 
                 if msg_length:
-                    msg_length = int(msg_length)
                     try:
-                        raw_msg = conn.recv(msg_length).decode(FORMAT)
-                    except:
-                        print(f"[{addr}] DISCONNECTED")
-                        self.handle_unexpected_disconnect(client_id,conn)
-                        return
-                    message = json.loads(raw_msg)
+                        msg_length = int(msg_length)
+                        try:
+                            raw_msg = conn.recv(msg_length).decode(FORMAT)
+                        except:
+                            print(f"[{addr}] DISCONNECTED")
+                            self.handle_unexpected_disconnect(client_id,conn)
+                            return
+                        message = json.loads(raw_msg)
+                    except ValueError:
+                        message = FAILURE_MESSAGE
 
                     if message["HEADER"] == DISCONNECT_MESSAGE:
                         connected = False
@@ -82,6 +87,11 @@ class Server:
 
                     elif message["HEADER"] == "SKIP":
                         player = self.get_session_player(self.get_session_from_user(message["ID"]))
+                        session_id = self.get_session_from_user(message["ID"])
+                        session_queue =  self.get_session_queue(session_id)
+                        if len(session_queue) > 0:
+                            player.add_to_queue(session_queue[0][1])
+                            session_queue.pop(0)
                         player.next_track()
 
                     elif message["HEADER"] == "REWIND":
@@ -96,14 +106,20 @@ class Server:
                     elif message["HEADER"] == "SEARCH":
                         player = self.get_session_player(self.get_session_from_user(message["ID"]))
                         song = message["MESSAGE"]
-                        print(song)
                         self.send("SEARCH_RESULTS", message["ID"], json.dumps(player.search(song)))
-                        print(player.search(song))
+                        
+
+
 
                     elif message["HEADER"] == "ADD_TO_QUEUE":
-                        player = self.get_session_player(self.get_session_from_user(message["ID"]))
-                        uri = message["MESSAGE"]
-                        player.add_to_queue(uri)
+                        track_data = json.loads(message["MESSAGE"])
+                        self.add_to_session_queue(message["ID"], (track_data["name"],track_data['uri']))
+                        session_id = self.get_session_from_user(message["ID"])
+                        
+
+                    elif message["HEADER"] == "QUEUE_UPDATE":
+                        options = json.loads(message["MESSAGE"])
+                        self.update_queue(message["ID"],options)
 
                     elif message["HEADER"] == "GET_USERS":
                         session_id = self.get_session_from_user(message["ID"])
@@ -132,6 +148,8 @@ class Server:
                             session_info["host"] = self.sessions[session_id]["HOST"]["NAME"]
                             
                             self.send("SESSION_INFO", message["ID"], json.dumps(session_info))
+                            self.send("QUEUE_UPDATE", message["ID"], json.dumps(self.get_session_queue(session_id)))
+                            self.broadcast_to_session(session_id,"USERS", json.dumps(self.sessions[session_id]["USERS"]))
                         else:
                             self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
                             self.send("FAILURE", message["ID"], "Session does not exist")
@@ -187,6 +205,7 @@ class Server:
             self.delete_session_entry(session_location,message["ID"])
             self.broadcast_to_session(session_location, "USER_DISCONNECT",f"[USER <{message['ID']}>:<{self.connections[message['ID']]['display_name']}>] Disconnected", exclude=[message["ID"]])
             self.delete_connection_entry(message["ID"])
+            self.broadcast_to_session(session_location, "USERS", json.dumps(self.sessions[session_location]["USERS"]))
             self.disconnect(conn,message["ID"],"You Disconnected")
 
     def handle_unexpected_disconnect(self,client_id, conn):
@@ -372,8 +391,8 @@ class Server:
             "display_name"  :display_name,
             "permissions"   : {
                 "add_to_queue"      : True,
-                "playback"             : True,
-                "skip"              : True
+                "playback"          : True,
+                "skip"              : True,
             }
         }
 
@@ -399,9 +418,13 @@ class Server:
                 "ID"            : host_id,
                 "NAME"          : host_name,
                 "spotify_token" : spotify_token,
-                "spotify_player": None
+                "spotify_player": None,
             },
-            "USERS" : {}
+            "queue"             : [],
+            "queue_lock"        : False,
+            "current_track"     : "",
+            "previous_track"    : "",
+            "USERS"             : {}
         }
 
     def delete_connection_entry(self,client_id):
@@ -436,9 +459,85 @@ class Server:
         token = self.sessions[session_id]["HOST"]["spotify_token"]
         self.sessions[session_id]["HOST"]["spotify_player"] = spotifyServer(accToken=None, accTokenDict=token)
 
-    
+    def get_session_queue(self, session_id):
+        return self.sessions[session_id]["queue"]
+
     def get_session_player(self, session_id):
         return self.sessions[session_id]["HOST"]["spotify_player"]
+
+    def add_to_session_queue(self, user_id, data):
+        session = self.get_session_from_user(user_id)
+        self.sessions[session]["queue"].append(data)
+        self.send_queue_update(session)
+    
+    def update_queue(self, user_id, options):
+        session_id = self.get_session_from_user(user_id)
+        session_queue = self.get_session_queue(session_id)
+        if options["action"] == "DELETE":
+            print("Deleting song", options["song_index"])
+            session_queue.pop(options["song_index"])
+        elif options["action"] == "MOVE_UP":
+            if len(session_queue) >= 2 and options["song_index"] > 0:
+                temp = session_queue[options["song_index"]-1]
+                session_queue[options["song_index"] -1] = session_queue[options["song_index"]]
+                session_queue[options["song_index"]] = temp
+        elif options["action"] == "MOVE_DOWN":
+            if len(session_queue) >= 2 and options["song_index"] < len(session_queue)-1:
+                temp = session_queue[options["song_index"]+1]
+                session_queue[options["song_index"] +1] = session_queue[options["song_index"]]
+                session_queue[options["song_index"]] = temp
+
+        self.send_queue_update(session_id)
+
+    def send_queue_update(self,session_id):
+        self.broadcast_to_session(session_id,"QUEUE_UPDATE", json.dumps(self.get_session_queue(session_id)))
+
+    def check_song_progress(self):
+        counter = 0
+        while(1):
+            sleep(1)
+            try:
+                for session in self.sessions.keys():
+                    try:
+                        if self.get_session_player(session).is_spotify_running() != False:
+                            player = self.get_session_player(session)
+                            progress_percentage = round(player.get_song_progress_ms()/self.get_session_player(session).get_song_duration_ms(), 2)
+                            current_track = {}
+                            current_track["name"] = player.sp.currently_playing()['item']['name']
+                            current_track["artist"] = player.sp.currently_playing()['item']['album']['artists'][0]['name']
+                            current_track["progress"] = player.get_song_progress_ms()
+                            current_track["runtime"] = player.get_song_duration_ms()
+                            
+                            self.sessions[session]["current_track"] = player.sp.currently_playing()['item']['uri']
+                            
+
+                            track_json = json.dumps(current_track)
+                            if len(track_json) >= 1:
+                                self.broadcast_to_session(session, "CURRENT_SONG", track_json)
+                            else:
+                                self.broadcast_to_session(session, "STC", "PLEASE START SPOTIFY")
+
+                            if counter % 3 == 0:
+                                self.send_queue_update(session)
+
+                            if progress_percentage > 0.95:
+                                if len(self.get_session_queue(session)) > 0  and not self.sessions[session]["queue_lock"]:
+                                    print(f"adding song: {current_track['name']} to shared queue for session {session}")
+                                    try:
+                                        self.get_session_player(session).add_to_queue(self.get_session_queue(session)[0][1])
+                                        self.get_session_queue(session).pop(0)
+                                        self.sessions[session]["previous_track"] = self.sessions[session]["current_track"]
+                                        self.send_queue_update(session)
+                                        self.sessions[session]["queue_lock"] = True
+                                    except Exception as ex:
+                                        print(str(ex))
+                            else:
+                                if self.sessions[session]["previous_track"] != self.sessions[session]["current_track"] and self.sessions[session]["queue_lock"]:
+                                    self.sessions[session]["queue_lock"] = False
+                    except:
+                        pass
+            except:
+                pass
 
     #-----------------------------END HELPER FUNCTIONS-----------------------------#
 
@@ -464,8 +563,13 @@ class Server:
     def start(self):
         self.server.listen()
         print(f"[STARTING] server is starting\nListening on {SERVER}:{PORT}")
-        connections = threading.Thread(target = self.show_connections)
-        connections.start()
+        # connections = threading.Thread(target = self.show_connections)
+        # connections.start()
+
+        prog = threading.Thread(target = self.check_song_progress)
+        prog.start()
+
+
 
         while True:
             conn, addr = self.server.accept()

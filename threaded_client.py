@@ -3,7 +3,6 @@ import requests
 import json
 import uuid
 import threading
-import ctypes
 from time import sleep
 from spotifyClient import spotifyClient
 
@@ -14,17 +13,17 @@ REDIRECT_URI = "http://localhost:8888/callback"
 #----------------------------------
 
 PREFIX = 64
-PORT = 5060
+PORT = 25565
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-LOCAL_SERVER = "10.0.0.105"
+LOCAL_SERVER = "10.0.0.91"
 #LOCAL_SERVER = socket.gethostbyname(socket.gethostname())
 PUBLIC_SERVER = "68.84.71.235"
 
 LOCAL_ADDR = (LOCAL_SERVER,PORT)
 PUBLIC_ADDR = (PUBLIC_SERVER,PORT)
 
-HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSION", "PLAYBACK", "SEARCH", "ADD_TO_QUEUE", "GET_CURRENT_SONG","PLAY","REWIND","SKIP","GET_USERS"]
+HEADERS = ["CTS", DISCONNECT_MESSAGE, "CREATE", "JOIN","BROADCAST_S", "BROADCAST", "SET_PERMISSION", "PLAYBACK", "SEARCH", "ADD_TO_QUEUE", "GET_CURRENT_SONG","PLAY","REWIND","SKIP","GET_USERS","QUEUE_UPDATE"]
 
 def get_public_ip():
     return str(requests.get('https://api.ipify.org').text)
@@ -82,7 +81,11 @@ class Client:
         while True:
             try:
                 msg = self.client.recv(PREFIX).decode(FORMAT)
-                msg_len = int(msg)
+                try:
+                    msg_len = int(msg)
+                except:
+                    self.queue.put(msg)
+                    msg_len = 4096
                 try:
                     raw_msg = self.client.recv(msg_len).decode(FORMAT)
                     message = json.loads(raw_msg)
