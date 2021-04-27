@@ -16,7 +16,11 @@ PREFIX = 64
 PORT = 25565
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
+<<<<<<< HEAD
 LOCAL_SERVER = "10.0.0.91"
+=======
+LOCAL_SERVER = "10.0.0.17"
+>>>>>>> 252247f52000542002a3bfa5d2eeb4754571389e
 #LOCAL_SERVER = socket.gethostbyname(socket.gethostname())
 PUBLIC_SERVER = "68.84.71.235"
 
