@@ -78,27 +78,29 @@ class UsersWindow(Screen):
                      minimum_width=grid.setter('width'))
 
         for i in self.results.keys():
-            Logger.info("{}".format(self.results[i]["display_name"]))
-            dropdown = DropDown()
+            permission_grid = GridLayout(cols = 5)
+            user_label = Label(text = self.results[i]["display_name"])
+            permission_grid.add_widget(user_label)
             for permission in self.results[i]["permissions"].keys():
-                #Logger.info("{}".format(permission))
-                btn = Button(size_hint = (1,None))
-                btn.text = f"{permission}:{self.results[i]['permissions'][permission]}"
+                btn = Button(size_hint = (0.17,0.17))
+                btn.text = f"{permission}"
+                if self.results[i]['permissions'][permission]:
+                    btn.background_color=green
+                else:
+                    btn.background_color=red
                 btn.bind(on_release= partial(self.user_pressed, i, permission, btn))
-                dropdown.add_widget(btn)
+                btn.disabled = not host
+                permission_grid.add_widget(btn)
 
-            btn1 = Button(size_hint=(1, None))
-            btn1.text = self.results[i]["display_name"]
-            btn1.bind(on_release=dropdown.open)
-            btn1.disabled = not host
-            grid.add_widget(btn1)
+            
+            grid.add_widget(permission_grid)
 
     def user_pressed(self, user_id, permission,btn, *args):
         App.get_running_app().client.change_permission(user_id,permission)
-        if btn.text == f"{permission}:False":
-            btn.text = f"{permission}:True"
+        if btn.background_color == red:
+            btn.background_color= green
         else:
-            btn.text = f"{permission}:False"
+            btn.background_color= red
 
     def clear_results(self):
         self.grid_l.clear_widgets()
@@ -107,6 +109,7 @@ class QueueWindow(Screen):
     grid_l = ObjectProperty(None)
     top_lbl = ObjectProperty(None)
     queue = []
+    permission = True
     queue_options = ["MOVE_UP", "MOVE_DOWN", "DELETE"]
 
     def show_queue(self):
@@ -122,9 +125,10 @@ class QueueWindow(Screen):
             song_lbl = Label(text=self.queue[song][0], color = green)
             song_grid.add_widget(song_lbl)
             for i in range(3):
-                btn = Button(size_hint=(0.2,0.2))
+                btn = Button(size_hint=(0.25,0.25))
                 btn.text = self.queue_options[i]
                 btn.bind(on_release=partial(self.handle_queue_update, song, self.queue_options[i]))
+                btn.disabled = not self.permission
                 song_grid.add_widget(btn)
             grid.add_widget(song_grid)
 
@@ -207,7 +211,7 @@ class MyMainApp(App):
 
                     elif msg["HEADER"] == "PERMISSION_UPDATE":
                         message = json.loads(msg["MESSAGE"])
-                        self.print_something(message)
+                        
                         if message["permission"] == "playback":
                             kv.get_screen("main").ids.playback.disabled = not message["value"]
                         elif message["permission"] == "skip":
@@ -215,6 +219,10 @@ class MyMainApp(App):
                             kv.get_screen("main").ids.skip_back.disabled = not message["value"]
                         elif message["permission"] == "add_to_queue":
                             kv.get_screen("main").ids.search_btn.disabled = not message["value"]
+                        elif message["permission"] == "edit_queue":
+                            kv.get_screen("queue").permission = not kv.get_screen("queue").permission
+                            
+
 
                     elif msg["HEADER"] == "FAILURE":
                         self.print_something(msg["MESSAGE"])

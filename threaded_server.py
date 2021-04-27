@@ -393,6 +393,7 @@ class Server:
                 "add_to_queue"      : True,
                 "playback"          : True,
                 "skip"              : True,
+                "edit_queue"        : True
             }
         }
 
@@ -520,7 +521,7 @@ class Server:
                             if counter % 3 == 0:
                                 self.send_queue_update(session)
 
-                            if progress_percentage > 0.95:
+                            if progress_percentage > 0.95 and counter % 4:
                                 if len(self.get_session_queue(session)) > 0  and not self.sessions[session]["queue_lock"]:
                                     print(f"adding song: {current_track['name']} to shared queue for session {session}")
                                     try:
@@ -538,6 +539,9 @@ class Server:
                         pass
             except:
                 pass
+            counter+=1
+            if counter == 1000:
+                counter = 0
 
     #-----------------------------END HELPER FUNCTIONS-----------------------------#
 
