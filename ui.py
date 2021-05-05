@@ -18,15 +18,15 @@ import uuid
 import threading
 from time import sleep
 from kivy.clock import Clock
-import queue as Queue 
+import queue as Queue
 import json
 from functools import partial
 import datetime
 import pickle
 
-red = [1, 0, 0, 1] 
-green = [0, 1, 0, 1] 
-blue = [0, 0, 1, 1]  
+red = [1, 0, 0, 1]
+green = [0, 1, 0, 1]
+blue = [0, 0, 1, 1]
 
 class MainWindow(Screen):
     session_id_text = StringProperty("")
@@ -65,7 +65,7 @@ class SearchWindow(Screen):
 
     def clear_results(self):
         self.widg_id.clear_widgets()
-        
+
     # pass
 
 class UsersWindow(Screen):
@@ -92,7 +92,7 @@ class UsersWindow(Screen):
                 btn.disabled = not host
                 permission_grid.add_widget(btn)
 
-            
+
             grid.add_widget(permission_grid)
 
     def user_pressed(self, user_id, permission,btn, *args):
@@ -104,7 +104,7 @@ class UsersWindow(Screen):
 
     def clear_results(self):
         self.grid_l.clear_widgets()
-                
+
 class QueueWindow(Screen):
     grid_l = ObjectProperty(None)
     top_lbl = ObjectProperty(None)
@@ -113,14 +113,14 @@ class QueueWindow(Screen):
     queue_options = ["MOVE_UP", "MOVE_DOWN", "DELETE"]
 
     def show_queue(self):
-        
+
         self.clear_results()
         grid = self.grid_l
         grid.bind(minimum_height=grid.setter('height'),
                      minimum_width=grid.setter('width'))
-        
+
         for song in range(len(self.queue)):
-            
+
             song_grid = GridLayout(cols = 4)
             song_lbl = Label(text=self.queue[song][0], color = green)
             song_grid.add_widget(song_lbl)
@@ -137,7 +137,7 @@ class QueueWindow(Screen):
         queue_info["song_index"] = btn
         queue_info["action"] = action
         App.get_running_app().client.send("QUEUE_UPDATE", "Server", json.dumps(queue_info))
-    
+
     def clear_results(self):
         self.grid_l.clear_widgets()
 
@@ -175,7 +175,7 @@ class MyMainApp(App):
                 msg = self.queue.get()
                 self.print_something(msg)
                 if type(msg) != type(10):
-                
+
                     if msg["HEADER"] == "SESSION_ID":
                         kv.get_screen("main").ids.session_id_text.text = msg["MESSAGE"]
 
@@ -211,7 +211,7 @@ class MyMainApp(App):
 
                     elif msg["HEADER"] == "PERMISSION_UPDATE":
                         message = json.loads(msg["MESSAGE"])
-                        
+
                         if message["permission"] == "playback":
                             kv.get_screen("main").ids.playback.disabled = not message["value"]
                         elif message["permission"] == "skip":
@@ -221,7 +221,7 @@ class MyMainApp(App):
                             kv.get_screen("main").ids.search_btn.disabled = not message["value"]
                         elif message["permission"] == "edit_queue":
                             kv.get_screen("queue").permission = not kv.get_screen("queue").permission
-                            
+                            kv.get_screen("queue").show_queue()
 
 
                     elif msg["HEADER"] == "FAILURE":
@@ -239,12 +239,12 @@ class MyMainApp(App):
 
         self.queue.queue.clear()
         return True
-    
+
 def convert_ms(ms):
     sec = int(ms/1000)
     return str(datetime.timedelta(seconds = sec))
-      
-    
+
+
 
 if __name__ == "__main__":
     MyMainApp().run()

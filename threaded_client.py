@@ -16,7 +16,7 @@ PREFIX = 64
 PORT = 25565
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-LOCAL_SERVER = "10.0.0.91"
+LOCAL_SERVER = "10.0.0.48"
 #LOCAL_SERVER = socket.gethostbyname(socket.gethostname())
 PUBLIC_SERVER = "68.84.71.235"
 
@@ -37,7 +37,7 @@ class Client:
         self.spotify_Client = None
         self.client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.local = False
-        
+
         self.connected = True
         self.recieving = False
 
@@ -92,11 +92,11 @@ class Client:
                     self.queue.put(message)
                     if message["HEADER"] == DISCONNECT_MESSAGE:
                         break
-                        
+
                 except Exception as ex:
                     self.queue.put(str(ex))
 
-                
+
 
             except Exception as ex:
                 print(str(ex))

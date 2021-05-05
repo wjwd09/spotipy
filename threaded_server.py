@@ -71,7 +71,7 @@ class Server:
                         self.create_spotify_player(session_id)
                         if not self.sessions[session_id]["HOST"]["spotify_player"].is_spotify_running():
                             self.send("STC", client_id, "PLEASE START SPOTIFY")
-                        
+
                         self.send("SESSION_ID", client_id,  str(session_id))
 
                     elif message["HEADER"] == "GET_CURRENT_SONG":
@@ -92,6 +92,7 @@ class Server:
                         if len(session_queue) > 0:
                             player.add_to_queue(session_queue[0][1])
                             session_queue.pop(0)
+                            self.send_queue_update(session_id)
                         player.next_track()
 
                     elif message["HEADER"] == "REWIND":
@@ -107,7 +108,7 @@ class Server:
                         player = self.get_session_player(self.get_session_from_user(message["ID"]))
                         song = message["MESSAGE"]
                         self.send("SEARCH_RESULTS", message["ID"], json.dumps(player.search(song)))
-                        
+
 
 
 
@@ -115,7 +116,7 @@ class Server:
                         track_data = json.loads(message["MESSAGE"])
                         self.add_to_session_queue(message["ID"], (track_data["name"],track_data['uri']))
                         session_id = self.get_session_from_user(message["ID"])
-                        
+
 
                     elif message["HEADER"] == "QUEUE_UPDATE":
                         options = json.loads(message["MESSAGE"])
@@ -142,11 +143,11 @@ class Server:
                             self.add_user_to_session(session_id,message["ID"],msg["display_name"])
                             self.add_connection_entry(message["ID"],msg["display_name"],session_id, False, conn, addr)
                             client_id = message["ID"]
-                            
+
                             session_info = {}
                             session_info["session_id"] = session_id
                             session_info["host"] = self.sessions[session_id]["HOST"]["NAME"]
-                            
+
                             self.send("SESSION_INFO", message["ID"], json.dumps(session_info))
                             self.send("QUEUE_UPDATE", message["ID"], json.dumps(self.get_session_queue(session_id)))
                             self.broadcast_to_session(session_id,"USERS", json.dumps(self.sessions[session_id]["USERS"]))
@@ -470,7 +471,7 @@ class Server:
         session = self.get_session_from_user(user_id)
         self.sessions[session]["queue"].append(data)
         self.send_queue_update(session)
-    
+
     def update_queue(self, user_id, options):
         session_id = self.get_session_from_user(user_id)
         session_queue = self.get_session_queue(session_id)
@@ -508,9 +509,9 @@ class Server:
                             current_track["artist"] = player.sp.currently_playing()['item']['album']['artists'][0]['name']
                             current_track["progress"] = player.get_song_progress_ms()
                             current_track["runtime"] = player.get_song_duration_ms()
-                            
+
                             self.sessions[session]["current_track"] = player.sp.currently_playing()['item']['uri']
-                            
+
 
                             track_json = json.dumps(current_track)
                             if len(track_json) >= 1:
@@ -518,7 +519,7 @@ class Server:
                             else:
                                 self.broadcast_to_session(session, "STC", "PLEASE START SPOTIFY")
 
-                            if counter % 3 == 0:
+                            if counter % 2 == 0:
                                 self.send_queue_update(session)
 
                             if progress_percentage > 0.95 and counter % 4:
