@@ -13,12 +13,12 @@ REDIRECT_URI = "http://localhost:8888/callback"
 #----------------------------------
 
 PREFIX = 64
-PORT = 25565
+PORT = 25564
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!DISCONNECT"
-LOCAL_SERVER = "10.0.0.48"
+LOCAL_SERVER = "your local ip here"
 #LOCAL_SERVER = socket.gethostbyname(socket.gethostname())
-PUBLIC_SERVER = "68.84.71.235"
+PUBLIC_SERVER = "your public ip here"
 
 LOCAL_ADDR = (LOCAL_SERVER,PORT)
 PUBLIC_ADDR = (PUBLIC_SERVER,PORT)

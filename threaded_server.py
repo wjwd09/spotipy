@@ -8,7 +8,7 @@ import queue
 import pickle
 
 PREFIX = 64
-PORT = 25565
+PORT = 25564
 SERVER = ''
 #SERVER = socket.gethostbyname(socket.gethostname())
 ADDR = (SERVER,PORT)
@@ -522,7 +522,7 @@ class Server:
                             if counter % 2 == 0:
                                 self.send_queue_update(session)
 
-                            if progress_percentage > 0.95 and counter % 4:
+                            if progress_percentage > 0.98 and counter % 4:
                                 if len(self.get_session_queue(session)) > 0  and not self.sessions[session]["queue_lock"]:
                                     print(f"adding song: {current_track['name']} to shared queue for session {session}")
                                     try:
@@ -568,8 +568,8 @@ class Server:
     def start(self):
         self.server.listen()
         print(f"[STARTING] server is starting\nListening on {SERVER}:{PORT}")
-        # connections = threading.Thread(target = self.show_connections)
-        # connections.start()
+        #connections = threading.Thread(target = self.show_connections)
+        #connections.start()
 
         prog = threading.Thread(target = self.check_song_progress)
         prog.start()
